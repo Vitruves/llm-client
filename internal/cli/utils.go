@@ -1,9 +1,10 @@
 package cli
 
 import (
-	"github.com/Vitruves/llm-client/internal/logger"
 	"os"
 	"runtime"
+
+	"github.com/Vitruves/llm-client/internal/logger"
 )
 
 // These color constants are now in the logger package

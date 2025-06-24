@@ -1,0 +1,100 @@
+################################################################################
+# EXAMPLE 1: vLLM Provider Configuration
+# Recommended for high-throughput, OpenAI-compatible API serving.
+################################################################################
+
+# Provider: Defines the connection to the LLM server.
+provider:
+  name: vllm
+  base_url: http://localhost:8000
+  timeout: 120s # Request timeout (e.g., 60s, 2m)
+
+# Model: Specifies the model and its generation parameters.
+model:
+  name: "mistralai/Mistral-7B-Instruct-v0.2" # The model identifier used by the server.
+  parameters:
+    # --- Basic Sampling Parameters (Supported by most providers) ---
+    temperature: 0.2
+    max_tokens: 128
+    min_tokens: 1
+    top_p: 0.95
+    top_k: 40
+    min_p: 0.01
+    repetition_penalty: 1.1
+    presence_penalty: 0.0
+    frequency_penalty: 0.0
+    seed: 42 # For reproducible results. Disable if using flashinfer_safe.
+    n: 1 # Number of completions to generate per prompt.
+    stop: ["\n", "User:"]
+    stop_token_ids: [] # e.g., [123, 456]
+    ignore_eos: false
+    logprobs: null # Set to an integer (e.g., 5) to get log probabilities.
+    skip_special_tokens: true
+
+    # --- vLLM-Specific Guided Generation Parameters ---
+    # Use only ONE of these guided generation methods at a time.
+    # guided_choice: ["positive", "negative", "neutral"] # Constrain output to a list of choices.
+    # guided_regex: "^(positive|negative|neutral)$" # Enforce a regex pattern.
+    # guided_json: # Enforce a JSON schema.
+    #   type: object
+    #   properties:
+    #     sentiment: { type: string, enum: ["positive", "negative", "neutral"] }
+    #     confidence: { type: number, minimum: 0, maximum: 1 }
+    #   required: ["sentiment"]
+    # guided_grammar: "" # Path to or content of a GBNF grammar file.
+
+    # --- Other vLLM-Specific Parameters ---
+    enable_thinking: true # For models like Qwen2 that support <think> blocks.
+    use_beam_search: false
+    best_of: 1 # Must be > 1 to be effective. If use_beam_search is true, this is the beam width.
+    length_penalty: 1.0 # Penalty for longer sequences in beam search.
+    early_stopping: false # Stop beam search early.
+    bad_words: [] # List of words to prevent from generating.
+    include_stop_str_in_output: false
+    prompt_logprobs: null
+    truncate_prompt_tokens: null # e.g., 1024
+    spaces_between_special_tokens: true
+
+# Classification: Defines the prompt structure and response parsing logic.
+classification:
+  template:
+    system: "You are an expert sentiment classifier. Analyze the user's text and determine if the sentiment is positive, negative, or neutral. Provide only the label."
+    user: "Classify the sentiment of the following review: {review_text}"
+  parsing:
+    # 'answer_patterns' takes precedence over 'find'. Use it for more complex extraction.
+    # answer_patterns: ["Final Answer: (positive|negative|neutral)"]
+    find: ["positive", "negative", "neutral"] # Keywords to find in the response.
+    default: "unknown" # Value if no keyword is found.
+    fallback: "error" # Value if the entire request fails.
+    map: {} # e.g., {"1": "positive", "0": "negative"}
+    thinking_tags: "<think></think>" # Tags for chain-of-thought extraction.
+    preserve_thinking: false # Set to true to keep thinking block in the response for parsing.
+    case_sensitive: false
+    exact_match: false
+  field_mapping:
+    input_text_field: "review_text" # Column to use as primary input text in results.
+    placeholder_map: {} # e.g., { "product_name": "product" }
+
+# Processing: Configures the execution of the job.
+processing:
+  workers: 16 # Number of concurrent requests.
+  batch_size: 1 # (Future use)
+  repeat: 1 # Set to > 1 for consensus mode (e.g., 3).
+  rate_limit: true # Recommended for vLLM to prevent server overload.
+  flashinfer_safe: false # Set to true if your vLLM build uses FlashInfer, disables 'seed'.
+  minimal_mode: false # If true, skips parsing and returns raw LLM output.
+  live_metrics:
+    enabled: true
+    metric: "f1" # "accuracy", "f1", or "kappa"
+    ground_truth: "label" # Column name in input file with correct answers.
+    average: "macro" # For f1-score: "macro", "micro", or "weighted".
+    classes: ["positive", "negative", "neutral"]
+
+# Output: Configures how results are saved.
+output:
+  directory: "./output/vllm_results"
+  format: "json" # "json", "csv", "parquet", or "xlsx"
+  include_raw_response: true
+  include_thinking: true
+  stream_output: false # Set to true to write results as they complete.
+  stream_save_every: 1 # Recommended if stream_output is true.

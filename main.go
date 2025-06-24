@@ -239,48 +239,7 @@ Examples:
 	return cmd
 }
 
-func newCompletionCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "completion",
-		Short: "Generate the autocompletion script for the specified shell",
-		Long: `To load completions:
 
-Bash:
-  $ llm-client completion bash > /etc/bash_completion.d/llm-client
-
-Zsh:
-  $ llm-client completion zsh > "${fpath[1]}/_llm-client"
-
-Fish:
-  $ llm-client completion fish > ~/.config/fish/completions/llm-client.fish
-
-Powershell:
-  PS> llm-client completion powershell | Out-String | Invoke-Expression`,
-		DisableFlagsInUseLine: true,
-		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-		Args:                  cobra.ExactValidArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			switch args[0] {
-			case "bash":
-				cmd.Root().GenBashCompletion(os.Stdout)
-			case "zsh":
-				cmd.Root().GenZshCompletion(os.Stdout)
-			case "fish":
-				cmd.Root().GenFishCompletion(os.Stdout, true)
-			case "powershell":
-				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
-			}
-		},
-	}
-}
-
-func newHelpCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "help [command]",
-		Short: "Help about any command",
-		Long:  "Help provides help for any command in the application. Simply type llm-client help [path to command] for full details.",
-	}
-}
 
 func runClassify(cmd *cobra.Command, args []string) error {
 	configFile, _ := cmd.Flags().GetString("config")

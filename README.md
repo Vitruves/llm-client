@@ -1,3 +1,33 @@
+# LLM Client
+
+This client provides a flexible and efficient way to interact with various Large Language Models (LLMs) via their API endpoints, supporting providers like vLLM, Llama.cpp, and OpenAI. It's designed for classification tasks, enabling robust prompt templating, response parsing, and comprehensive output management.
+
+## Installation
+
+To install the LLM Client, ensure you have Go installed (version 1.18 or higher).
+
+```bash
+go install github.com/Vitruves/llm-client@latest
+```
+
+This command will download, compile, and install the `llm-client` executable to your Go binary path (e.g., `$GOPATH/bin` or `$HOME/go/bin`). Make sure this directory is in your system's `PATH`.
+
+## Usage
+
+Once installed, you can run the client using a configuration file:
+
+```bash
+llm-client run -c config/my_config.yaml -i data/input.json
+```
+
+For more details on available commands and flags:
+
+```bash
+llm-client --help
+```
+
+---
+
 # LLM Client Configuration Reference
 
 This guide provides a comprehensive and user-friendly reference for configuring the LLM Client.
@@ -146,6 +176,87 @@ This section defines the specific Large Language Model to be used and its genera
 - **`spaces_between_special_tokens`** (bool, optional):
   -   **Purpose**: If `true`, adds a space between special tokens in the generated output.
   -   **Example**: `spaces_between_special_tokens: false`
+
+- **`enable_thinking`** (bool, optional, **vLLM specific**):
+  -   **Purpose**: Enables the "thinking" mode for models like Qwen3, allowing them to output reasoning content separately.
+  -   **Example**: `enable_thinking: true`
+
+- **`guided_choice`** ([]string, optional, **vLLM specific**):
+  -   **Purpose**: Restricts output to a list of specified strings, useful for constrained generation.
+  -   **Example**: `guided_choice: ["yes", "no"]`
+
+- **`guided_regex`** (string, optional, **vLLM specific**):
+  -   **Purpose**: Constrains the model's output to conform to a given regular expression.
+  -   **Example**: `guided_regex: "\\d{5}"` (for a 5-digit number)
+
+- **`guided_json`** (string, optional, **vLLM specific**):
+  -   **Purpose**: Forces the model to generate valid JSON according to a JSON schema provided as a string.
+  -   **Example**: `guided_json: '{ "type": "object", "properties": { "name": {"type": "string"} } }'`
+
+- **`guided_grammar`** (string, optional, **vLLM specific**):
+  -   **Purpose**: Constrains the model's output to a GBNF grammar, allowing for complex structured output.
+  -   **Example**: `guided_grammar: "root ::= \"hello\""`
+
+- **`guided_whitespace_pattern`** (string, optional, **vLLM specific**):
+  -   **Purpose**: Specifies a regex pattern for whitespace allowed during guided generation.
+  -   **Example**: `guided_whitespace_pattern: "\\s*"`
+
+- **`guided_decoding_backend`** (string, optional, **vLLM specific**):
+  -   **Purpose**: Specifies the backend for guided decoding (e.g., "outlines", "lm-format-enforcer").
+  -   **Valid Values**: `"outlines"`, `"lm-format-enforcer"`
+  -   **Example**: `guided_decoding_backend: "outlines"`
+
+- **`max_logprobs`** (int, optional, **vLLM specific**):
+  -   **Purpose**: Maximum number of log probabilities to return for output tokens.
+  -   **Example**: `max_logprobs: 5`
+
+- **`echo`** (bool, optional, **vLLM specific**):
+  -   **Purpose**: If `true`, the prompt will be echoed in the response.
+  -   **Example**: `echo: false`
+
+- **`best_of`** (int, optional, **vLLM specific**):
+  -   **Purpose**: Generates `best_of` sequences and returns the one with the highest log probability.
+  -   **Example**: `best_of: 1`
+
+- **`use_beam_search`** (bool, optional, **vLLM specific**):
+  -   **Purpose**: If `true`, enables beam search for generation.
+  -   **Example**: `use_beam_search: false`
+
+- **`length_penalty`** (float, optional, **vLLM specific**):
+  -   **Purpose**: Penalizes longer sequences during beam search.
+  -   **Example**: `length_penalty: 1.0`
+
+- **`early_stopping`** (bool, optional, **vLLM specific**):
+  -   **Purpose**: If `true`, stops beam search early when a sufficiently good hypothesis is found.
+  -   **Example**: `early_stopping: false`
+
+- **`mirostat`** (int, optional, **Llama.cpp specific**):
+  -   **Purpose**: Enables Mirostat sampling, a dynamic method to control perplexity. `0` (disabled), `1` (Mirostat 1.0), `2` (Mirostat 2.0).
+  -   **Example**: `mirostat: 0`
+
+- **`mirostat_tau`** (float, optional, **Llama.cpp specific**):
+  -   **Purpose**: Mirostat learning rate, used in Mirostat sampling.
+  -   **Example**: `mirostat_tau: 5.0`
+
+- **`mirostat_eta`** (float, optional, **Llama.cpp specific**):
+  -   **Purpose**: Mirostat target entropy, used in Mirostat sampling.
+  -   **Example**: `mirostat_eta: 0.1`
+
+- **`tfs_z`** (float, optional, **Llama.cpp specific**):
+  -   **Purpose**: Tail Free Sampling (TFS) parameter.
+  -   **Example**: `tfs_z: 1.0`
+
+- **`typical_p`** (float, optional, **Llama.cpp specific**):
+  -   **Purpose**: Typical P sampling parameter.
+  -   **Example**: `typical_p: 1.0`
+
+- **`n_keep`** (int, optional, **Llama.cpp specific**):
+  -   **Purpose**: Number of tokens to keep from the prompt.
+  -   **Example**: `n_keep: 0`
+
+- **`penalize_nl`** (bool, optional, **Llama.cpp specific**):
+  -   **Purpose**: Penalize newlines.
+  -   **Example**: `penalize_nl: true`
 
 ---
 
@@ -330,10 +441,19 @@ This section provides guidance on how to effectively tune the various configurat
     -   **Tuning Tip**: Always use a fixed `seed` during development and testing to ensure reproducibility of results. This is crucial for debugging and comparing model changes.
 
 -   **`stop`** and **`stop_token_ids`**:
-    -   **Tuning Tip**: Define explicit `stop` sequences (e.g., `["\nObservation:"]`, `"<|im_end|>"]`) that your prompt templates are designed to end with. This prevents the LLM from generating extra content and ensures clean parsing. Using `stop_token_ids` is more robust if you know the specific token IDs.
+    -   **Tuning Tip**: Define explicit `stop` sequences (e.g., `["\nObservation:"]`, `"<|im_end|>"`) that your prompt templates are designed to end with. This prevents the LLM from generating extra content and ensures clean parsing. Using `stop_token_ids` is more robust if you know the specific token IDs.
 
 -   **`chat_format`**:
     -   **Tuning Tip**: Ensure this strictly matches the fine-tuning format of your Llama.cpp model (e.g., `"chatml"`, `"llama-2"`, `"mistral"`). Incorrect format will lead to poor responses.
+
+- **`enable_thinking`**:
+    -   **Tuning Tip**: For Qwen3 and similar models that support it, setting `enable_thinking: true` can help the model output its reasoning process, which can be valuable for debugging and understanding model behavior. Ensure your parsing configuration handles the `thinking_tags` correctly.
+
+- **`guided_choice`**, **`guided_regex`**, **`guided_json`**, **`guided_grammar`**:
+    -   **Tuning Tip**: These parameters are powerful for enforcing structured output. Use `guided_choice` for a small set of exact options, `guided_regex` for general patterns, `guided_json` for strict JSON adherence (with a schema), and `guided_grammar` for complex, arbitrary structures defined by a GBNF grammar. Start with simpler methods and move to more complex ones as needed.
+
+- **`mirostat`**, **`mirostat_tau`**, **`mirostat_eta`**, **`tfs_z`**, **`typical_p`**, **`n_keep`**, **`penalize_nl`**:
+    -   **Tuning Tip**: These are advanced sampling parameters, primarily for Llama.cpp. Experiment with them cautiously if default sampling methods don't yield desired results. Refer to Llama.cpp documentation for detailed guidance on each.
 
 ##### Processing Parameters (`processing`):
 
@@ -349,6 +469,12 @@ This section provides guidance on how to effectively tune the various configurat
 -   **`rate_limit`**:
     -   **Tuning Tip**: Set to `true` when `repeat > 1` and you are interacting with public APIs or self-hosted models that have strict rate limits. This prevents `HTTP 429 Too Many Requests` errors.
 
+-   **`flashinfer_safe`**:
+    -   **Tuning Tip**: If you encounter issues with FlashInfer, set this to `true` to disable certain features that might be incompatible or cause issues with FlashInfer optimizations on some LLM backends (e.g., specific stop token configurations).
+
+-   **`minimal_mode`**:
+    -   **Tuning Tip**: If you need a simple raw response capture, set this to `true`. This skips complex parsing and consensus logic for single-attempt processing.
+
 ##### Output Parameters (`output`):
 
 -   **`format`**:
@@ -356,6 +482,12 @@ This section provides guidance on how to effectively tune the various configurat
 
 -   **`include_raw_response`** / **`include_thinking`**:
     -   **Tuning Tip**: Set these to `true` during development and debugging to inspect the full LLM output and its internal "thinking" process. Once confident in your parsing, you can set them to `false` to reduce output file size if not needed for final analysis.
+
+-   **`stream_output`**:
+    -   **Tuning Tip**: For large datasets or long-running jobs, enabling `stream_output` can provide real-time results and reduce memory usage by writing processed items to disk continuously. Pair this with `stream_save_every` to balance performance and data safety.
+
+-   **`stream_save_every`**:
+    -   **Tuning Tip**: When `stream_output` is `true`, adjust `stream_save_every` to control how often results are flushed to disk. A higher value (e.g., 100 or 1000) can improve performance by reducing disk I/O, but a lower value (e.g., 1) ensures minimal data loss in case of a crash.
 
 ##### General Tuning Workflow:
 
@@ -393,6 +525,10 @@ This section controls the execution flow, concurrency, and real-time metrics for
 - **`flashinfer_safe`** (bool, optional):
   -   **Purpose**: If `true`, disables certain features that might be incompatible or cause issues with FlashInfer optimizations on some LLM backends (e.g., specific stop token configurations). Only set this if you encounter issues with FlashInfer.
   -   **Example**: `flashinfer_safe: false`
+
+- **`minimal_mode`** (bool, optional):
+  -   **Purpose**: If `true`, the processor operates in a minimal mode, skipping complex parsing and consensus logic for single-attempt processing. This can be useful for simple raw response capture.
+  -   **Example**: `minimal_mode: false`
 
 ### Live Metrics Configuration:
 This sub-section enables and configures the real-time display and calculation of classification performance metrics during processing.
@@ -446,6 +582,14 @@ This section specifies how the results of the LLM classification process are sav
 
 - **`input_text_field`** (string, **DEPRECATED**):
   -   **Purpose**: This field is deprecated. Please use `classification.field_mapping.input_text_field` instead for more flexible and explicit control over how the primary input text is identified and used.
+
+- **`stream_output`** (bool, optional):
+  -   **Purpose**: If `true`, results will be written to the output file continuously as they are processed, rather than waiting for all processing to complete. Useful for large datasets or long-running jobs.
+  -   **Example**: `stream_output: true`
+
+- **`stream_save_every`** (int, optional):
+  -   **Purpose**: When `stream_output` is `true`, this specifies how often (in number of processed items) the streamed output file should be flushed to disk. A higher value means less frequent flushing, potentially better performance but higher risk of data loss on crash.
+  -   **Example**: `stream_save_every: 100` (flush every 100 items)
 
 ### Output Content Details:
 
@@ -525,7 +669,7 @@ These errors relate to issues in extracting the final answer from the LLM's resp
 These errors pertain to how input data fields are mapped and accessed for prompt templating.
 
 -   **Missing Field**: If a placeholder in your `user` prompt template (e.g., `{MY_FIELD}`) does not correspond to an existing field in the `DataRow.Data` map (your original input columns), the placeholder will remain unreplaced in the prompt sent to the LLM. This can lead to unexpected LLM behavior.
--   **Type Conversion**: Non-string values from `DataRow.Data` (e.g., numbers, booleans) used in templates or for `InputText` resolution are automatically converted to strings using Go's default formatting (`fmt.Sprintf("%v", value)`). While this prevents errors, ensure the default string representation is suitable for your prompt.
+-   **Type Conversion**: Non-string values from `DataRow.Data` (e.g., numbers, booleans) used in templates or for `InputText` are automatically converted to strings using Go's default formatting (`fmt.Sprintf("%v", value)`). While this prevents errors, ensure the default string representation is suitable for your prompt.
 -   **Nested Field Not Found**: If a nested field specified using dot notation (e.g., `{parent.child}`) is not found within your `DataRow.Data`, that specific placeholder will also remain unreplaced in the prompt.
 
 ### Processing Errors:

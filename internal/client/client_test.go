@@ -110,7 +110,8 @@ func TestNewClient(t *testing.T) {
 func TestVLLMClientBasicRequest(t *testing.T) {
 	// Mock vLLM server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v1/chat/completions" {
+		switch r.URL.Path {
+		case "/v1/chat/completions":
 			response := map[string]interface{}{
 				"choices": []map[string]interface{}{
 					{
@@ -127,7 +128,7 @@ func TestVLLMClientBasicRequest(t *testing.T) {
 				},
 			}
 			json.NewEncoder(w).Encode(response)
-		} else if r.URL.Path == "/health" {
+		case "/health":
 			w.WriteHeader(http.StatusOK)
 		}
 	}))
@@ -328,7 +329,8 @@ func TestVLLMClientWithThinkingMode(t *testing.T) {
 
 func TestLlamaCppClientAdvancedSampling(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v1/chat/completions" {
+		switch r.URL.Path {
+		case "/v1/chat/completions":
 			var requestBody map[string]interface{}
 			err := json.NewDecoder(r.Body).Decode(&requestBody)
 			if err != nil {
@@ -355,7 +357,7 @@ func TestLlamaCppClientAdvancedSampling(t *testing.T) {
 				},
 			}
 			json.NewEncoder(w).Encode(response)
-		} else if r.URL.Path == "/health" {
+		case "/health":
 			w.WriteHeader(http.StatusOK)
 		}
 	}))

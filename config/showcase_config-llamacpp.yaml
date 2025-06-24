@@ -1,0 +1,76 @@
+################################################################################
+# EXAMPLE 2: llama.cpp Provider Configuration
+# Recommended for running local GGUF models with the llama.cpp server.
+################################################################################
+
+# Provider: Defines the connection to the LLM server.
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 180s # llama.cpp can sometimes be slower to respond.
+
+# Model: Specifies the model and its generation parameters.
+model:
+  name: "default" # llama.cpp server typically serves one model at a time.
+  parameters:
+    # --- Basic Sampling Parameters ---
+    temperature: 0.2
+    max_tokens: 128 # Mapped to 'n_predict' in llama.cpp API
+    min_tokens: 1
+    top_p: 0.95
+    top_k: 40
+    min_p: 0.01
+    repetition_penalty: 1.1
+    presence_penalty: 0.0
+    frequency_penalty: 0.0
+    seed: 42
+    n: 1 # Mapped to 'n_choices' in llama.cpp API
+    stop: ["\n", "User:"]
+    ignore_eos: false
+    logprobs: null
+
+    # --- llama.cpp-Specific Parameters ---
+    chat_format: "chatml" # Enables /v1/chat/completions endpoint. Options: chatml, llama2, etc.
+    mirostat: 0 # 0: disabled, 1: Mirostat, 2: Mirostat v2
+    mirostat_tau: 5.0
+    mirostat_eta: 0.1
+    tfs_z: 1.0
+    typical_p: 1.0
+    n_keep: 0 # Number of prompt tokens to keep if context is exceeded.
+    penalize_nl: false # Whether to penalize newline characters.
+
+# Classification: Defines the prompt structure and response parsing logic.
+classification:
+  template:
+    system: "You are an expert sentiment classifier. Analyze the user's text and determine if the sentiment is positive, negative, or neutral. Provide only the label."
+    user: "Classify the sentiment of the following review: {review_text}"
+  parsing:
+    find: ["positive", "negative", "neutral"]
+    default: "unknown"
+    fallback: "error"
+    map: {}
+    thinking_tags: "" # llama.cpp server does not have built-in thinking tags.
+    preserve_thinking: false
+    case_sensitive: false
+    exact_match: false
+  field_mapping:
+    input_text_field: "review_text"
+
+# Processing: Configures the execution of the job.
+processing:
+  workers: 8 # Adjust based on your server's capacity.
+  batch_size: 1
+  repeat: 1
+  rate_limit: false # llama.cpp server usually handles concurrency well.
+  live_metrics:
+    enabled: true
+    metric: "accuracy"
+    ground_truth: "label"
+
+# Output: Configures how results are saved.
+output:
+  directory: "./output/llamacpp_results"
+  format: "csv"
+  include_raw_response: true
+  include_thinking: false
+  stream_output: false

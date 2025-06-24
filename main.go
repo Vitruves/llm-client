@@ -38,16 +38,10 @@ func main() {
 func newRootCmd() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "llm-client",
-		Short: color.New(color.FgCyan, color.Bold).Sprint("A powerful, configurable client for LLM classification tasks"),
-		Long: color.New(color.FgHiBlue, color.Bold).Sprint("LLM Client") + 
-			 color.New(color.FgWhite).Sprint(" - A powerful, configurable client for LLM classification tasks\n\n") +
-			 color.New(color.FgGreen, color.Bold).Sprint("Features:\n") +
-			 color.New(color.FgYellow).Sprint("• Multiple LLM providers (vLLM, llama.cpp, OpenAI)\n") +
-			 color.New(color.FgYellow).Sprint("• Concurrent processing with worker pools\n") +
-			 color.New(color.FgYellow).Sprint("• Advanced parsing and consensus voting\n") +
-			 color.New(color.FgYellow).Sprint("• Live metrics and progress tracking\n") +
-			 color.New(color.FgYellow).Sprint("• Multiple output formats (JSON, CSV, Parquet, Excel)\n") +
-			 color.New(color.FgYellow).Sprint("• Resumable processing with state management"),
+		Short: color.New(color.FgCyan, color.Bold).Sprint("A versatile client for LLM classification tasks"),
+		Long: color.New(color.FgHiBlue, color.Bold).Sprint("LLM Client") +
+			color.New(color.FgWhite).Sprint(" - A versatile client designed for LLM classification tasks, offering a range of robust capabilities for data processing and analysis.\n"),
+
 		Version: version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Check for NO_COLOR environment variable
@@ -65,6 +59,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newReportCmd())
 	rootCmd.AddCommand(newHealthCmd())
 	rootCmd.AddCommand(newConfigCmd())
+	rootCmd.AddCommand(newCompletionCmd())
 
 	return rootCmd
 }
@@ -74,14 +69,14 @@ func newRunCmd() *cobra.Command {
 		Use:   "run",
 		Short: color.New(color.FgGreen, color.Bold).Sprint("Run LLM processing on input data"),
 		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Process input data through Large Language Models\n\n") +
-			 color.New(color.FgMagenta, color.Bold).Sprint("Supported Providers:\n") +
-			 color.New(color.FgCyan).Sprint("• vLLM - High-performance inference server\n") +
-			 color.New(color.FgCyan).Sprint("• llama.cpp - Efficient CPU/GPU inference\n") +
-			 color.New(color.FgCyan).Sprint("• OpenAI - API-compatible endpoints\n\n") +
-			 color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --temperature 0.7 --max-tokens 100 -w 50\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --stream-output"),
+			color.New(color.FgMagenta, color.Bold).Sprint("Supported Providers:\n") +
+			color.New(color.FgCyan).Sprint("• vLLM - High-performance inference server\n") +
+			color.New(color.FgCyan).Sprint("• llama.cpp - Efficient CPU/GPU inference\n") +
+			color.New(color.FgCyan).Sprint("• OpenAI - API-compatible endpoints\n\n") +
+			color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
+			color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv\n") +
+			color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --temperature 0.7 --max-tokens 100 -w 50\n") +
+			color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --stream-output"),
 		RunE: runClassify,
 	}
 
@@ -163,8 +158,8 @@ func newReportCmd() *cobra.Command {
 
 func newAnalyzeCmd() *cobra.Command {
 	var analyzeCmd = &cobra.Command{
-		Use:   "analyze [result-file]",
-		Short: "Analyze classification results",
+		Use:   color.New(color.FgCyan).Sprint("analyze [result-file]"),
+		Short: color.New(color.FgYellow, color.Bold).Sprint("Analyze classification results"),
 		Args:  cobra.ExactArgs(1),
 		RunE:  runAnalyze,
 	}
@@ -177,8 +172,8 @@ func newAnalyzeCmd() *cobra.Command {
 
 func newCompareCmd() *cobra.Command {
 	var compareCmd = &cobra.Command{
-		Use:   "compare [file1] [file2]",
-		Short: "Compare two result files",
+		Use:   color.New(color.FgCyan).Sprint("compare [file1] [file2]"),
+		Short: color.New(color.FgYellow, color.Bold).Sprint("Compare two result files"),
 		Args:  cobra.ExactArgs(2),
 		RunE:  runCompare,
 	}
@@ -194,10 +189,10 @@ func newHealthCmd() *cobra.Command {
 		Use:   "health",
 		Short: color.New(color.FgRed, color.Bold).Sprint("Check LLM server health and configuration"),
 		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Perform health checks on LLM servers\n\n") +
-			 color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client health --vllm\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client health --llamacpp --get-server-config\n") +
-			 color.New(color.FgYellow).Sprint("  llm-client health --curl-test http://localhost:8000"),
+			color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
+			color.New(color.FgYellow).Sprint("  llm-client health --vllm\n") +
+			color.New(color.FgYellow).Sprint("  llm-client health --llamacpp --get-server-config\n") +
+			color.New(color.FgYellow).Sprint("  llm-client health --curl-test http://localhost:8000"),
 		RunE: runHealth,
 	}
 
@@ -215,8 +210,8 @@ func newHealthCmd() *cobra.Command {
 func newConfigCmd() *cobra.Command {
 	var configCmd = &cobra.Command{
 		Use:   "config",
-		Short: "Configuration utilities",
-		Long:  "Validate configurations and test request/response processing",
+		Short: color.New(color.FgYellow, color.Bold).Sprint("Configuration utilities"),
+		Long:  color.New(color.FgWhite).Sprint("Validate configurations and test request/response processing"),
 	}
 
 	configCmd.AddCommand(newConfigValidateCmd())
@@ -227,13 +222,12 @@ func newConfigCmd() *cobra.Command {
 func newConfigValidateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate [config-file]",
-		Short: "Validate configuration file",
-		Long: `Validate configuration file and optionally test with sample data.
-
-Examples:
-  llm-client config validate config.yaml
-  llm-client config validate config.yaml --test-file data.csv
-  llm-client config validate config.yaml --test-file data.csv --show-request`,
+		Short: color.New(color.FgYellow).Sprint("Validate configuration file"),
+		Long: color.New(color.FgWhite).Sprint("Validate configuration file and optionally test with sample data.\n\n") +
+			color.New(color.FgGreen, color.Bold).Sprint("Examples:\n") +
+			color.New(color.FgCyan).Sprint("  llm-client config validate config.yaml\n") +
+			color.New(color.FgCyan).Sprint("  llm-client config validate config.yaml --test-file data.csv\n") +
+			color.New(color.FgCyan).Sprint("  llm-client config validate config.yaml --test-file data.csv --show-request"),
 		Args: cobra.ExactArgs(1),
 		RunE: runConfigValidate,
 	}
@@ -245,6 +239,66 @@ Examples:
 	cmd.Flags().Int("test-rows", 3, "Number of rows to test (default 3)")
 
 	return cmd
+}
+
+func newCompletionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   color.New(color.FgCyan).Sprint("completion [shell]"),
+		Short: color.New(color.FgYellow, color.Bold).Sprint("Generate the autocompletion script for the specified shell"),
+		Long: color.New(color.FgWhite).Sprint(`To load completions:
+
+Bash:
+
+  $ llm-client completion bash > /etc/bash_completion.d/llm-client
+
+  # To disable go's cobra command help for autocompletion
+  $ echo "unset __start_llm-client" >> ~/.bashrc
+
+Zsh:
+
+  # If shell completion is not already enabled in your environment, 
+  # you will need to enable it.  You can execute once:
+
+  $ echo "autoload -U compinit; compinit" >> ~/.zshrc
+
+  # To load completions for each session, execute once:
+  $ llm-client completion zsh > "${fpath[1]}/_llm-client"
+
+  # You will need to start a new shell for this setup to take effect.
+
+Fish:
+
+  $ llm-client completion fish > ~/.config/fish/completions/llm-client.fish
+
+  # To disable go's cobra command help for autocompletion
+  $ echo "set -e __start_llm-client" >> ~/.config/fish/config.fish
+
+Powershell:
+
+  PS> llm-client completion powershell | Out-String | Invoke-Expression
+
+  # To disable go's cobra command help for autocompletion
+  PS> Add-Content $PROFILE "Remove-Item Env:__start_llm-client"
+
+`) +
+			color.New(color.FgGreen, color.Bold).Sprint("Example:") +
+			color.New(color.FgCyan).Sprint(" llm-client completion bash"),
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+		Args:                  cobra.ExactValidArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			switch args[0] {
+			case "bash":
+				cmd.Root().GenBashCompletion(os.Stdout)
+			case "zsh":
+				cmd.Root().GenZshCompletion(os.Stdout)
+			case "fish":
+				cmd.Root().GenFishCompletion(os.Stdout, true)
+			case "powershell":
+				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+			}
+		},
+	}
 }
 
 func runClassify(cmd *cobra.Command, args []string) error {
@@ -695,7 +749,7 @@ func runConfigValidate(cmd *cobra.Command, args []string) error {
 func runVLLMHealthCheck(configFile string, getServerConfig bool, useDefault bool) error {
 	var cfg *models.Config
 	var err error
-	
+
 	if useDefault && configFile == "config.yaml" {
 		// Create default vLLM config
 		cfg = &models.Config{
@@ -756,7 +810,7 @@ func runVLLMHealthCheck(configFile string, getServerConfig bool, useDefault bool
 func runLlamaCppHealthCheck(configFile string, getServerConfig bool, useDefault bool) error {
 	var cfg *models.Config
 	var err error
-	
+
 	if useDefault && configFile == "config.yaml" {
 		// Create default llama.cpp config
 		cfg = &models.Config{
@@ -861,7 +915,7 @@ func runCurlTest(url string) error {
 func runConfigTest(cfg *models.Config, testFile string, showRequest, showResponse bool, testRows int) error {
 	logger.Header("Configuration Test")
 	logger.Info("Testing with file: %s", testFile)
-	
+
 	// Enable verbose mode if we're showing request/response details
 	if showRequest || showResponse {
 		logger.SetVerbose(true)
@@ -963,7 +1017,7 @@ func printServerInfo(info *models.ServerInfo) {
 				}
 			}
 		}
-		
+
 		logger.Header("Server Features")
 		for key, value := range info.Features {
 			if key != "version_info" {
@@ -975,7 +1029,7 @@ func printServerInfo(info *models.ServerInfo) {
 	// Show client configuration
 	if len(info.Config) > 0 {
 		logger.Header("Client Configuration")
-		
+
 		// Group important parameters
 		if temperature, ok := info.Config["temperature"]; ok {
 			logger.Info("Temperature: %v", temperature)
@@ -989,7 +1043,7 @@ func printServerInfo(info *models.ServerInfo) {
 		if topK, ok := info.Config["top_k"]; ok {
 			logger.Info("Top-K: %v", topK)
 		}
-		
+
 		// Show all other parameters
 		logger.Debug("All Client Parameters:")
 		for key, value := range info.Config {

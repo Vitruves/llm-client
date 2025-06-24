@@ -52,42 +52,10 @@ func newRootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable colored output")
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Show help message")
 
-	// Color subcommands by overriding their names  
-	runCmd := newRunCmd()
-	runCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("run")
-	
-	reportCmd := newReportCmd()
-	reportCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("report")
-	
-	healthCmd := newHealthCmd()
-	healthCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("health")
-	
-	configCmd := newConfigCmd()
-	configCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("config")
-	
-	rootCmd.AddCommand(runCmd)
-	rootCmd.AddCommand(reportCmd)
-	rootCmd.AddCommand(healthCmd)
-	rootCmd.AddCommand(configCmd)
-
-	// Color help and completion subcommands after adding other commands
-	rootCmd.InitDefaultHelpCmd()
-	if len(rootCmd.Commands()) > 0 {
-		for _, cmd := range rootCmd.Commands() {
-			if cmd.Name() == "help" {
-				cmd.Use = color.New(color.FgCyan, color.Bold).Sprint("help") + " [command]"
-			}
-		}
-	}
-	
-	rootCmd.InitDefaultCompletionCmd()
-	if len(rootCmd.Commands()) > 0 {
-		for _, cmd := range rootCmd.Commands() {
-			if cmd.Name() == "completion" {
-				cmd.Use = color.New(color.FgCyan, color.Bold).Sprint("completion") + " [bash|zsh|fish|powershell]"
-			}
-		}
-	}
+	rootCmd.AddCommand(newRunCmd())
+	rootCmd.AddCommand(newReportCmd())
+	rootCmd.AddCommand(newHealthCmd())
+	rootCmd.AddCommand(newConfigCmd())
 
 	return rootCmd
 }
@@ -177,14 +145,8 @@ func newReportCmd() *cobra.Command {
 		Long:  "Analyze and generate detailed reports from LLM classification result files",
 	}
 
-	analyzeCmd := newAnalyzeCmd()
-	analyzeCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("analyze") + " [result-file]"
-	
-	compareCmd := newCompareCmd()
-	compareCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("compare") + " [file1] [file2]"
-	
-	reportCmd.AddCommand(analyzeCmd)
-	reportCmd.AddCommand(compareCmd)
+	reportCmd.AddCommand(newAnalyzeCmd())
+	reportCmd.AddCommand(newCompareCmd())
 
 	return reportCmd
 }
@@ -248,10 +210,7 @@ func newConfigCmd() *cobra.Command {
 		Long:  "Validate configurations and test request/response processing",
 	}
 
-	validateCmd := newConfigValidateCmd()
-	validateCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("validate") + " [config-file]"
-	
-	configCmd.AddCommand(validateCmd)
+	configCmd.AddCommand(newConfigValidateCmd())
 
 	return configCmd
 }

@@ -246,8 +246,8 @@ func newConfigValidateCmd() *cobra.Command {
 
 func newCompletionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   color.New(color.FgGreen).Sprint("completion"),
-		Short: color.New(color.FgYellow, color.Bold).Sprint("Generate the autocompletion script for the specified shell"),
+		Use:   color.New(color.FgCyan).Sprint("completion"),
+		Short: color.New(color.FgHiYellow).Sprint("Generate the autocompletion script for the specified shell"),
 		Long: color.New(color.FgWhite).Sprint(`To load completions:
 
 Bash:

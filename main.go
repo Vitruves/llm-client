@@ -22,6 +22,7 @@ import (
 	"github.com/Vitruves/llm-client/internal/processor"
 	"github.com/Vitruves/llm-client/internal/reporter"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -36,14 +37,22 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Use:     "llm-client",
-		Short:   "A powerful, configurable client for LLM classification tasks",
-		Long:    "LLM Client - A powerful, configurable client for LLM classification tasks",
+		Use:   "llm-client",
+		Short: color.New(color.FgCyan, color.Bold).Sprint("A powerful, configurable client for LLM classification tasks"),
+		Long: color.New(color.FgHiBlue, color.Bold).Sprint("LLM Client") + 
+			 color.New(color.FgWhite).Sprint(" - A powerful, configurable client for LLM classification tasks\n\n") +
+			 color.New(color.FgGreen, color.Bold).Sprint("Features:\n") +
+			 color.New(color.FgYellow).Sprint("• Multiple LLM providers (vLLM, llama.cpp, OpenAI)\n") +
+			 color.New(color.FgYellow).Sprint("• Concurrent processing with worker pools\n") +
+			 color.New(color.FgYellow).Sprint("• Advanced parsing and consensus voting\n") +
+			 color.New(color.FgYellow).Sprint("• Live metrics and progress tracking\n") +
+			 color.New(color.FgYellow).Sprint("• Multiple output formats (JSON, CSV, Parquet, Excel)\n") +
+			 color.New(color.FgYellow).Sprint("• Resumable processing with state management"),
 		Version: version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Check for NO_COLOR environment variable
 			if os.Getenv("NO_COLOR") != "" {
-				cli.SetColorEnabled(false)
+				color.NoColor = true
 			}
 		},
 	}
@@ -63,15 +72,16 @@ func newRootCmd() *cobra.Command {
 func newRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run",
-		Short: "Run LLM processing on input data",
-		Long: `Process input data through Large Language Models for classification, extraction, and analysis tasks.
-Supports multiple providers (vLLM, llama.cpp, OpenAI), output formats, and advanced processing features.
-
-Examples:
-  llm-client run -c config.yaml -i data.csv
-  llm-client run -c config.yaml -i data.csv --temperature 0.7 --max-tokens 100 -w 50
-  llm-client run -c config.yaml -i data.csv --stream-output --guided-regex "^(positive|negative|neutral)$"
-  llm-client run --resume results/state_20240101_123456.json`,
+		Short: color.New(color.FgGreen, color.Bold).Sprint("Run LLM processing on input data"),
+		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Process input data through Large Language Models\n\n") +
+			 color.New(color.FgMagenta, color.Bold).Sprint("Supported Providers:\n") +
+			 color.New(color.FgCyan).Sprint("• vLLM - High-performance inference server\n") +
+			 color.New(color.FgCyan).Sprint("• llama.cpp - Efficient CPU/GPU inference\n") +
+			 color.New(color.FgCyan).Sprint("• OpenAI - API-compatible endpoints\n\n") +
+			 color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --temperature 0.7 --max-tokens 100 -w 50\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client run -c config.yaml -i data.csv --stream-output"),
 		RunE: runClassify,
 	}
 
@@ -141,8 +151,8 @@ Examples:
 func newReportCmd() *cobra.Command {
 	var reportCmd = &cobra.Command{
 		Use:   "report",
-		Short: "Generate reports from classification results",
-		Long:  "Analyze and generate detailed reports from LLM classification result files",
+		Short: color.New(color.FgMagenta, color.Bold).Sprint("Generate reports from classification results"),
+		Long:  color.New(color.FgHiBlue, color.Bold).Sprint("Analyze and generate detailed reports from LLM classification result files"),
 	}
 
 	reportCmd.AddCommand(newAnalyzeCmd())
@@ -182,13 +192,12 @@ func newCompareCmd() *cobra.Command {
 func newHealthCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "health",
-		Short: "Check LLM server health and configuration",
-		Long: `Perform health checks on LLM servers and retrieve configuration information.
-
-Examples:
-  llm-client health --vllm
-  llm-client health --llamacpp --get-server-config
-  llm-client health --curl-test http://localhost:8000`,
+		Short: color.New(color.FgRed, color.Bold).Sprint("Check LLM server health and configuration"),
+		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Perform health checks on LLM servers\n\n") +
+			 color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client health --vllm\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client health --llamacpp --get-server-config\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client health --curl-test http://localhost:8000"),
 		RunE: runHealth,
 	}
 

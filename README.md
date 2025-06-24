@@ -276,15 +276,96 @@ The LLM Client processes the LLM's response in a defined sequence to determine t
 #### Details on Pattern Matching:
 -   **Regex Engine**: Uses Go's RE2 syntax, which guarantees linear time complexity but does not support certain advanced regex features like lookaheads/lookbehinds or backreferences.
 -   **Capture Requirement**: Crucially, each pattern *must* include exactly one capture group `(...)` to define what part of the match should be extracted as the answer.
+    -   **Good Example**: `"answer": "([^"]+)"` (Captures content between quotes)
+    -   **Bad Example**: `"answer": "[^"]+"` (No capture group, will be skipped)
+    -   **Bad Example**: `(first)(second)` (Multiple capture groups, only the first will be used)
+-   **Common RE2 Syntax**:
+    -   `.`: Matches any character (except newline).
+    -   `*`: Matches zero or more occurrences of the preceding character/group.
+    -   `+`: Matches one or more occurrences of the preceding character/group.
+    -   `?`: Matches zero or one occurrence of the preceding character/group (makes preceding greedy match non-greedy).
+    -   `|`: OR operator (e.g., `(cat|dog)` matches "cat" or "dog").
+    -   `[]`: Character set (e.g., `[0-9]` for digits, `[a-zA-Z]` for letters).
+    -   `[^]`: Negated character set (e.g., `[^\n]` for any character except newline).
+    -   `\d`: Matches a digit (equivalent to `[0-9]`).
+    -   `\w`: Matches a word character (alphanumeric + underscore).
+    -   `\s`: Matches a whitespace character.
+    -   `\b`: Word boundary.
+    -   `^`: Start of a string/line.
+    -   `$`: End of a string/line.
+    -   `(?i)`: Case-insensitive flag (can be used at the start of a pattern, e.g., `(?i)positive`).
+    -   `(?s)`: Dot matches newline flag (can be used at the start of a pattern, e.g., `(?s)Start(.*)End`).
 -   **Multiline Matching**: You can enable multiline matching for patterns using the `(?s)` flag (e.g., `(?s)Start(.*)End`) if your content spans multiple lines.
 -   **Unicode Support**: Full Unicode character support in patterns.
 -   **Performance**: All regex patterns are compiled once at startup to optimize performance during processing.
 
-#### Details on String Matching (`find` array):
--   **Algorithm**: Utilizes an efficient Boyer-Moore substring search algorithm or direct string comparison, depending on the `exact_match` setting.
--   **Case Folding**: When `case_sensitive` is `false`, Unicode-aware case-insensitive matching is applied.
--   **Whitespace Handling**: The parser does not automatically trim whitespace from the LLM's response or from the `find` strings. Ensure your `find` strings or `answer_patterns` account for any expected leading/trailing whitespace if it affects your matching logic.
--   **Empty Strings**: An empty response from the LLM or an empty string within the `find` array will not result in a match, unless explicitly handled by other logic.
+#### Tuning Guide for LLM Parameters:
+
+This section provides guidance on how to effectively tune the various configuration parameters to achieve optimal performance and desired output from your LLM classification tasks.
+
+##### Model Parameters (`model.parameters`):
+
+-   **`temperature`**:
+    -   **Low (0.0-0.3)**: Ideal for tasks requiring deterministic, factual, and precise answers (e.g., entity extraction, strict classification). Responses will be less creative and more focused.
+    -   **Medium (0.4-0.7)**: A good balance for most general tasks, allowing some creativity while maintaining coherence. Often a good starting point.
+    -   **High (0.8-1.0+)**: Use for creative generation, brainstorming, or when you need diverse outputs. May increase the risk of irrelevant or nonsensical responses.
+    -   **Tuning Tip**: Start low and gradually increase if you need more diversity. Adjust in small increments (e.g., 0.1).
+
+-   **`max_tokens`**:
+    -   **Tuning Tip**: Set this value to slightly more than the maximum expected length of your classification answer or extracted text. Setting it too high can waste tokens/compute, while too low will truncate responses.
+
+-   **`top_p` (Nucleus Sampling) and `top_k` (Top-K Sampling)**:
+    -   These parameters control the diversity of generated tokens. Generally, use one or the other, not both simultaneously, as their effects can overlap.
+    -   **`top_p`**: Recommended for most cases as it dynamically adjusts the token pool size based on probability distribution. Lower `top_p` values (e.g., 0.7-0.9) are common.
+    -   **`top_k`**: Useful if you want to strictly limit the number of token choices.
+    -   **Tuning Tip**: Start with `top_p: 0.9` and adjust if you need finer control over token selection. If using `top_k`, common values are 40-100.
+
+-   **`repetition_penalty`, `presence_penalty`, `frequency_penalty`**:
+    -   These help prevent repetitive or generic outputs.
+    -   **`repetition_penalty` (e.g., 1.05-1.2)**: Good for general reduction of exact phrase repetition.
+    -   **`presence_penalty` / `frequency_penalty` (e.g., 0.0-0.5)**: Use if the model tends to repeat concepts or topics. Experiment with small positive values.
+    -   **Tuning Tip**: Start with `repetition_penalty: 1.1`. Only adjust `presence_penalty` or `frequency_penalty` if you observe specific issues with topic repetition.
+
+-   **`seed`**:
+    -   **Tuning Tip**: Always use a fixed `seed` during development and testing to ensure reproducibility of results. This is crucial for debugging and comparing model changes.
+
+-   **`stop`** and **`stop_token_ids`**:
+    -   **Tuning Tip**: Define explicit `stop` sequences (e.g., `["\nObservation:"]`, `"<|im_end|>"]`) that your prompt templates are designed to end with. This prevents the LLM from generating extra content and ensures clean parsing. Using `stop_token_ids` is more robust if you know the specific token IDs.
+
+-   **`chat_format`**:
+    -   **Tuning Tip**: Ensure this strictly matches the fine-tuning format of your Llama.cpp model (e.g., `"chatml"`, `"llama-2"`, `"mistral"`). Incorrect format will lead to poor responses.
+
+##### Processing Parameters (`processing`):
+
+-   **`workers`**:
+    -   **Tuning Tip**: This controls concurrency. Start with a number appropriate for your CPU cores and the capabilities of your LLM server. Too many workers can overload the server or consume excessive memory. Gradually increase to find the sweet spot that maximizes throughput without introducing errors. Monitor server load if applicable.
+
+-   **`batch_size`**:
+    -   **Tuning Tip**: For classification, `1` is often sufficient as many LLM APIs process single prompts. Increase this only if your specific LLM provider or deployment (e.g., vLLM with `max_model_len` configured) demonstrably benefits from larger batches, which can reduce overhead.
+
+-   **`repeat`**:
+    -   **Tuning Tip**: Use `repeat > 1` (e.g., `3` or `5`) when you need to increase the reliability of your classifications or quantify the model's confidence/variance. This enables "consensus mode". Analyze the `attempts` and `consensus` fields in the output to evaluate consistency.
+
+-   **`rate_limit`**:
+    -   **Tuning Tip**: Set to `true` when `repeat > 1` and you are interacting with public APIs or self-hosted models that have strict rate limits. This prevents `HTTP 429 Too Many Requests` errors.
+
+##### Output Parameters (`output`):
+
+-   **`format`**:
+    -   **Tuning Tip**: Choose based on your downstream analysis needs. `json` or `parquet` are generally preferred for retaining full data fidelity (especially with nested `original_data`, `attempts`, `consensus`), while `csv` or `xlsx` are suitable for simpler, flattened outputs.
+
+-   **`include_raw_response`** / **`include_thinking`**:
+    -   **Tuning Tip**: Set these to `true` during development and debugging to inspect the full LLM output and its internal "thinking" process. Once confident in your parsing, you can set them to `false` to reduce output file size if not needed for final analysis.
+
+##### General Tuning Workflow:
+
+1.  **Start Simple**: Begin with a basic configuration (e.g., `temperature: 0.7`, `max_tokens: 128`, `workers: 4`, `batch_size: 1`, `repeat: 1`).
+2.  **Iterate and Observe**: Make small, incremental changes to one or two parameters at a time.
+3.  **Monitor Performance**: Pay attention to `response_time_ms`, success rates, and any error messages in your output.
+4.  **Evaluate Output Quality**: Critically review the `final_answer` and `raw_response` (if included) to assess if the LLM is behaving as expected.
+5.  **Reproducibility**: Always use a `seed` when comparing parameter changes.
+
+This comprehensive guide should help you effectively configure and tune the LLM Client for your specific use cases.
 
 ---
 

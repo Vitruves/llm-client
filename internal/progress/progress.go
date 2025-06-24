@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"llm-client/internal/logger"
 	"os"
-	"os/exec"
-	"strconv"
+	"os/signal"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"llm-client/internal/metrics"
@@ -54,20 +55,32 @@ func NewWithMetrics(total int, metricsCalc *metrics.Calculator) *Progress {
 func (p *Progress) Start() {
 	logger.Info("Starting process with %d items", p.total)
 	p.setupStickyDisplay()
-	p.ticker = time.NewTicker(100 * time.Millisecond)
+	p.ticker = time.NewTicker(1 * time.Second)
+
+	// Setup signal handler to restore cursor on interruption
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		defer p.ticker.Stop()
+		defer p.restoreCursor() // Always restore cursor when goroutine exits
+		
 		for {
 			select {
 			case <-p.done:
 				p.displayFinal()
+				return
+			case <-sigCh:
+				// Handle interrupt signal - restore cursor and exit
+				p.restoreCursor()
 				return
 			case <-p.ticker.C:
 				select {
 				case p.displayChan <- struct{}{}:
 				default:
 				}
+			case <-p.displayChan:
+				p.display()
 			case msg := <-p.messageQueue:
 				p.showMessage(msg)
 			}
@@ -86,8 +99,8 @@ func (p *Progress) LogMessage(message string) {
 
 // setupStickyDisplay prepares the terminal for sticky bottom display
 func (p *Progress) setupStickyDisplay() {
-	// Save cursor position and hide cursor
-	fmt.Print("\033[s\033[?25l")
+	// Hide cursor for cleaner display
+	fmt.Print("\033[?25l")
 	p.isVisible = true
 	p.display()
 }
@@ -98,21 +111,16 @@ func (p *Progress) showMessage(message string) {
 	defer p.mu.Unlock()
 
 	if p.isVisible {
-		// Clear progress bar, show message, then redraw progress bar
-		fmt.Print("\r\033[K") // Clear current line
-		logger.Info(message)  // Print message
-		p.redrawProgress()    // Redraw progress bar
+		// Clear current line completely
+		fmt.Print("\r\033[K")
+		// Print the message normally
+		logger.Info(message)
+		// Progress bar will be redrawn on next timer tick
 	} else {
 		logger.Info(message)
 	}
 }
 
-// redrawProgress redraws the progress bar without going through the update logic
-func (p *Progress) redrawProgress() {
-	if p.lastDisplay != "" {
-		fmt.Print(p.lastDisplay)
-	}
-}
 
 func (p *Progress) Update(current, success, failed int) {
 	atomic.StoreInt64(&p.current, int64(current))
@@ -129,10 +137,20 @@ func (p *Progress) Increment() {
 }
 
 func (p *Progress) triggerDisplay() {
+	// Only trigger if we're visible and not too frequently
+	if !p.isVisible {
+		return
+	}
 	select {
 	case p.displayChan <- struct{}{}:
 	default:
+		// Channel full, skip this update
 	}
+}
+
+// restoreCursor restores the terminal cursor
+func (p *Progress) restoreCursor() {
+	fmt.Print("\r\033[K\033[?25h")
 }
 
 func (p *Progress) Stop() {
@@ -143,71 +161,29 @@ func (p *Progress) Stop() {
 	close(p.done)
 
 	// Restore cursor and clear line
-	fmt.Print("\r\033[K\033[?25h")
+	p.restoreCursor()
 }
 
-func (p *Progress) getTerminalWidth() int {
-	// Try to get terminal width from environment
-	if cols := os.Getenv("COLUMNS"); cols != "" {
-		if w, err := strconv.Atoi(cols); err == nil && w > 0 {
-			return w
-		}
-	}
 
-	// Try using stty command
-	if output, err := exec.Command("stty", "size").Output(); err == nil {
-		if parts := strings.Fields(strings.TrimSpace(string(output))); len(parts) >= 2 {
-			if w, err := strconv.Atoi(parts[1]); err == nil && w > 0 {
-				return w
-			}
-		}
-	}
-
-	// Try using tput command
-	if output, err := exec.Command("tput", "cols").Output(); err == nil {
-		if w, err := strconv.Atoi(strings.TrimSpace(string(output))); err == nil && w > 0 {
-			return w
-		}
-	}
-
-	// Default fallback
-	return 80
-}
-
-func (p *Progress) buildDots(current int64, availableWidth int) string {
-	// Calculate maximum dots that fit in available width
-	maxDots := availableWidth
-	if maxDots < 10 {
-		maxDots = 10 // Minimum dots
-	}
-	if maxDots > 60 {
-		maxDots = 60 // Maximum dots for readability
-	}
-
-	dotsCount := int(float64(current) / float64(p.total) * float64(maxDots))
-	if dotsCount > maxDots {
-		dotsCount = maxDots
-	}
-	return strings.Repeat(".", dotsCount)
-}
 
 func formatDuration(d time.Duration) string {
 	if d <= 0 {
-		return "unknown"
+		return "00:00"
 	}
 
 	seconds := int(d.Seconds())
 	if seconds < 60 {
-		return fmt.Sprintf("%ds", seconds)
+		return fmt.Sprintf("00:%02d", seconds)
 	}
 
 	minutes := seconds / 60
 	if minutes < 60 {
-		return fmt.Sprintf("%dm%ds", minutes, seconds%60)
+		return fmt.Sprintf("%02d:%02d", minutes, seconds%60)
 	}
 
 	hours := minutes / 60
-	return fmt.Sprintf("%dh%dm", hours, minutes%60)
+	minutes = minutes % 60
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds%3600%60)
 }
 
 func formatThroughput(rate float64) string {
@@ -235,7 +211,6 @@ func (p *Progress) display() {
 	defer p.mu.Unlock()
 
 	current := atomic.LoadInt64(&p.current)
-	// success := atomic.LoadInt64(&p.success)
 	failed := atomic.LoadInt64(&p.failed)
 
 	if p.total == 0 {
@@ -244,10 +219,13 @@ func (p *Progress) display() {
 
 	percent := float64(current) / float64(p.total) * 100
 
-	// Only redraw if percentage changed or 100ms passed since last display
-	// This reduces flickering and CPU usage
+	// Only redraw if significant change or time passed
 	now := time.Now()
-	if percent == p.lastPercent && now.Sub(p.lastUpdate) < 100*time.Millisecond && current != p.total {
+	percentChanged := percent != p.lastPercent
+	timeElapsed := now.Sub(p.lastUpdate) > 1*time.Second
+	isComplete := current == p.total
+	
+	if !percentChanged && !timeElapsed && !isComplete {
 		return
 	}
 	p.lastPercent = percent
@@ -255,68 +233,85 @@ func (p *Progress) display() {
 
 	elapsed := time.Since(p.startTime)
 
-	// Calculate estimated total time and remaining time
+	// Calculate ETA and speed
 	var eta time.Duration
 	var speed float64
 	if current > 0 && elapsed > 0 {
 		speed = float64(current) / elapsed.Seconds()
-		// Check for division by zero before calculating eta
-		if speed > 0 {
-			eta = time.Duration((float64(p.total)/speed - elapsed.Seconds()) * float64(time.Second))
+		if speed > 0 && current < p.total {
+			eta = time.Duration((float64(p.total-current)/speed) * float64(time.Second))
 		}
 	}
 
+	// Build progress line components
+	timestamp := time.Now().Format("15:04")
+	percentStr := fmt.Sprintf("%.1f%%", percent)
 	durationStr := formatDuration(elapsed)
 	etaStr := formatDuration(eta)
 	speedStr := formatThroughput(speed)
-
-	tbarWidth := p.getTerminalWidth() - 50 // Adjust based on prefix/suffix lengths
-	if tbarWidth < 10 {
-		tbarWidth = 10
-	}
-
-	dots := p.buildDots(current, tbarWidth)
-
-	var barColor string
-	var barChar = "─"
-
-	if current == p.total {
-		barColor = logger.ColorGreen // Green when complete
-	} else if failed > 0 {
-		barColor = logger.ColorRed // Red if there are errors
-	} else if percent > 75 {
-		barColor = logger.ColorYellow // Yellow for nearing completion
-	} else {
-		barColor = logger.ColorCyan // Cyan for in progress
-	}
-
-	progressBar := fmt.Sprintf("%s%s%s", barColor, strings.Repeat(barChar, len(dots)), logger.ColorReset)
-
-	// stats := fmt.Sprintf(" %s%d%s/%s%d%s", logger.ColorGreen, success, logger.ColorReset, logger.ColorRed, failed, logger.ColorReset)
-
-	progressLine := fmt.Sprintf("%s%.1f%%%s|%s%s| %s%d%s/%s%d%s [%s%s%s, %s%s] ETA: %s%s%s",
-		logger.ColorBlue, percent, logger.ColorReset,
-		progressBar, strings.Repeat(" ", tbarWidth-len(dots)),
-		logger.ColorCyan, current, logger.ColorReset, logger.ColorBlue, p.total, logger.ColorReset,
-		logger.ColorGray, durationStr, logger.ColorReset,
-		logger.ColorGray, speedStr,
-		logger.ColorGray, etaStr, logger.ColorReset)
-
 	metricText := p.getMetricText(current)
-	if metricText != "" {
-		progressLine += metricText
+
+	// Use a fixed bar width for consistency
+	barWidth := 30 // Fixed width for better display
+
+	// Build progress bar
+	filledWidth := int(float64(barWidth) * percent / 100)
+	if filledWidth > barWidth {
+		filledWidth = barWidth
 	}
 
+	// Choose colors
+	var barColor string
+	if current == p.total {
+		barColor = logger.ColorGreen
+	} else if failed > 0 {
+		barColor = logger.ColorRed
+	} else if percent > 75 {
+		barColor = logger.ColorYellow
+	} else {
+		barColor = logger.ColorCyan
+	}
+
+	// Build the progress bar with proper width
+	progressBar := fmt.Sprintf("%s%s%s%s",
+		barColor,
+		strings.Repeat("█", filledWidth),
+		logger.ColorReset,
+		strings.Repeat("░", barWidth-filledWidth))
+
+	// Build progress line with proper formatting
+	// Keep it simple to avoid truncation issues
+	progressLine := fmt.Sprintf("%s - %sINFO%s : %s|%s| %d/%d [%s, %s] ETA: %s%s",
+		timestamp,
+		logger.ColorBlue, logger.ColorReset,
+		percentStr,
+		progressBar,
+		current, p.total,
+		durationStr, speedStr, etaStr,
+		metricText)
+
+	// Don't truncate - let terminal handle wrapping
+	// Just ensure we clear to end of line
 	p.lastDisplay = progressLine
-	logger.Progress(progressLine)
+
+	// Clear to end of line and print progress
+	fmt.Printf("\r%s\033[K", progressLine)
 }
+
+// stripColors removes ANSI color codes to calculate actual text length
+func (p *Progress) stripColors(text string) string {
+	// Remove ANSI escape sequences
+	re := regexp.MustCompile(`\033\[[0-9;]*m`)
+	return re.ReplaceAllString(text, "")
+}
+
 
 func (p *Progress) displayFinal() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Ensure progress bar is removed
-	fmt.Print("\r\033[K\033[?25h")
+	// Clear progress bar completely and restore cursor
+	p.restoreCursor()
 
 	success := atomic.LoadInt64(&p.success)
 	failed := atomic.LoadInt64(&p.failed)

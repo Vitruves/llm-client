@@ -8,7 +8,7 @@ model:
   name: "Qwen3"  # or your specific Qwen2.5 model
   parameters:
     # Qwen2.5 optimized parameters for fast classification
-    temperature: 0.1
+    temperature: 0.6
     #max_tokens: 512
     #top_p: 0.1
     #top_k: 1
@@ -17,30 +17,24 @@ model:
     #seed: 42
     
     # Standard stopping
-    stop: ["<|im_end|>"]
+    #stop: ["<|im_end|>"]
     skip_special_tokens: false
     spaces_between_special_tokens: true
 
-classification:
+lassification:
   template:
     system: |
-      You are a medical expert specialized in detecting side effects from patient reviews.
+      You are a english medical expert specialized in detecting drug-induced side effects from patient drug reviews.
     
     user: |
-      Extract the side effects from the following patient drug review: ### {comment} ###. List the side effects in **medical terms** separated by comma, example : \"nausea,diarrhea,anxiety,intestinal_pain,chest_disconfort\" or "none" if no side effects. Your answer (only a list of medical terms separated by a comma):
+      Read the medical review and extract the **drug-induced** side effects in a list of **UNIQUE NON-DUPLICATED** **medical terms** separated by comma OR "none" if NO **drug -induced** side effect or empty review **OR** "none" if no drug-induced side effects or empty review. Example 1 :  #START_OF_REVIEW# Starting this medicine was difficult because of nausea and vomiting but now I'm fine! #END_OF_REVIEW#, your answer would be: "nausea,vomiting". Example 2 : #START_OF_REVIEW# I feel good #END_OF_REVIEW#, your answer would be: "none". The review you need to analyze: #START_OF_REVIEW# {comment} #END_OF_REVIEW#. Your answer (only a list of non-duplicated medical terms separated by a comma **OR** "none"):
 
   field_mapping:
     input_text_field: "comment"
   
   parsing:
-    # Simple parsing for non-thinking models
-    #preserve_thinking: true
-    
-    # Direct classification patterns
-    #answer_patterns:
-    
     # Fallback to simple find
-    find: ["*"]
+    find: []
     #fallback: "model_error"
     
     # Case insensitive matching

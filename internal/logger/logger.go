@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 // Color constants for log output
@@ -34,6 +36,15 @@ const (
 var (
 	currentLevel = INFO
 	verbose      = false
+	// Enhanced color functions using fatih/color
+	colorError   = color.New(color.FgRed, color.Bold)
+	colorSuccess = color.New(color.FgGreen, color.Bold)
+	colorWarning = color.New(color.FgYellow, color.Bold)
+	colorInfo    = color.New(color.FgCyan, color.Bold)
+	colorDebug   = color.New(color.FgHiBlack)
+	colorHeader  = color.New(color.FgMagenta, color.Bold, color.Underline)
+	colorValue   = color.New(color.FgHiGreen)
+	colorKey     = color.New(color.FgBlue)
 )
 
 // SetLevel sets the global log level
@@ -88,12 +99,31 @@ func (l LogLevel) Color() string {
 	}
 }
 
+// GetColorFunc returns the enhanced color function for the log level
+func (l LogLevel) GetColorFunc() *color.Color {
+	switch l {
+	case DEBUG:
+		return colorDebug
+	case INFO:
+		return colorInfo
+	case WARNING:
+		return colorWarning
+	case ERROR:
+		return colorError
+	case PROGRESS:
+		return colorInfo
+	default:
+		return color.New(color.Reset)
+	}
+}
+
 // formatMessage creates a formatted log message with timestamp and level
 func formatMessage(level LogLevel, message string, args ...interface{}) string {
 	now := time.Now()
-	timestamp := now.Format("15:04") // HH:MM format
+	timestamp := colorKey.Sprintf("%s", now.Format("15:04")) // HH:MM format with color
 
-	levelStr := fmt.Sprintf("%s%s%s", level.Color(), level.String(), ColorReset)
+	levelColorFunc := level.GetColorFunc()
+	levelStr := levelColorFunc.Sprintf("%s", level.String())
 
 	var formattedMsg string
 	if level == PROGRESS {

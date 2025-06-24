@@ -2,15 +2,15 @@ package progress
 
 import (
 	"fmt"
-	"github.com/Vitruves/llm-client/internal/logger"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/Vitruves/llm-client/internal/logger"
 
 	"github.com/Vitruves/llm-client/internal/metrics"
 )
@@ -64,7 +64,7 @@ func (p *Progress) Start() {
 	go func() {
 		defer p.ticker.Stop()
 		defer p.restoreCursor() // Always restore cursor when goroutine exits
-		
+
 		for {
 			select {
 			case <-p.done:
@@ -121,7 +121,6 @@ func (p *Progress) showMessage(message string) {
 	}
 }
 
-
 func (p *Progress) Update(current, success, failed int) {
 	atomic.StoreInt64(&p.current, int64(current))
 	atomic.StoreInt64(&p.success, int64(success))
@@ -163,8 +162,6 @@ func (p *Progress) Stop() {
 	// Restore cursor and clear line
 	p.restoreCursor()
 }
-
-
 
 func formatDuration(d time.Duration) string {
 	if d <= 0 {
@@ -224,7 +221,7 @@ func (p *Progress) display() {
 	percentChanged := percent != p.lastPercent
 	timeElapsed := now.Sub(p.lastUpdate) > 1*time.Second
 	isComplete := current == p.total
-	
+
 	if !percentChanged && !timeElapsed && !isComplete {
 		return
 	}
@@ -239,7 +236,7 @@ func (p *Progress) display() {
 	if current > 0 && elapsed > 0 {
 		speed = float64(current) / elapsed.Seconds()
 		if speed > 0 && current < p.total {
-			eta = time.Duration((float64(p.total-current)/speed) * float64(time.Second))
+			eta = time.Duration((float64(p.total-current) / speed) * float64(time.Second))
 		}
 	}
 
@@ -297,14 +294,6 @@ func (p *Progress) display() {
 	// Clear to end of line and print progress
 	fmt.Printf("\r%s\033[K", progressLine)
 }
-
-// stripColors removes ANSI color codes to calculate actual text length
-func (p *Progress) stripColors(text string) string {
-	// Remove ANSI escape sequences
-	re := regexp.MustCompile(`\033\[[0-9;]*m`)
-	return re.ReplaceAllString(text, "")
-}
-
 
 func (p *Progress) displayFinal() {
 	p.mu.Lock()

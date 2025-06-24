@@ -8,14 +8,14 @@ model:
   name: "MedGemma"  # or your specific Qwen2.5 model
   parameters:
     # Mistral optimized parameters for fast classification
-    temperature: 1
-    max_tokens: 1
+    #temperature: 1
+    #max_tokens: 1
     #top_p: 0.1
-    top_k: 10
+    #top_k: 10
     #repetition_penalty: 1.1
-    presence_penalty: 1.5
+    #presence_penalty: 1.5
     #seed: 42
-    
+    stop: ["<end_of_turn>"]
     # Chat completion specific parameters
     stream: false
 

@@ -111,11 +111,12 @@ func (p *Progress) showMessage(message string) {
 	defer p.mu.Unlock()
 
 	if p.isVisible {
-		// Clear current line completely
+		// Clear current progress line
 		fmt.Print("\r\033[K")
-		// Print the message normally
+		// Print the message with newline
 		logger.Info(message)
-		// Progress bar will be redrawn on next timer tick
+		// Immediately redraw progress bar
+		p.displayImmediate()
 	} else {
 		logger.Info(message)
 	}
@@ -203,17 +204,74 @@ func (p *Progress) getMetricText(current int64) string {
 	return fmt.Sprintf(" | %s%s%s: %s%.2f%s", logger.ColorPurple, metricName, logger.ColorReset, logger.ColorBold, metric, logger.ColorReset)
 }
 
-func (p *Progress) display() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
+// displayImmediate displays progress bar immediately without locks (used internally)
+func (p *Progress) displayImmediate() {
 	current := atomic.LoadInt64(&p.current)
 	failed := atomic.LoadInt64(&p.failed)
 
 	if p.total == 0 {
-		return // Avoid division by zero
+		return
 	}
 
+	percent := float64(current) / float64(p.total) * 100
+	elapsed := time.Since(p.startTime)
+
+	var eta time.Duration
+	var speed float64
+	if current > 0 && elapsed > 0 {
+		speed = float64(current) / elapsed.Seconds()
+		if speed > 0 && current < p.total {
+			eta = time.Duration((float64(p.total-current) / speed) * float64(time.Second))
+		}
+	}
+
+	timestampColored := fmt.Sprintf("%s%s%s", logger.ColorBlue, time.Now().Format("15:04"), logger.ColorReset)
+	infoColored := fmt.Sprintf("%s%sINFO%s%s", logger.ColorCyan, logger.ColorBold, logger.ColorReset, logger.ColorReset)
+	percentColored := fmt.Sprintf("%s%.1f%%%s", logger.ColorYellow, percent, logger.ColorReset)
+	countColored := fmt.Sprintf("%s%d%s/%s%d%s", logger.ColorGreen, current, logger.ColorReset, logger.ColorGreen, p.total, logger.ColorReset)
+	timeColored := fmt.Sprintf("%s[%s, %s]%s", logger.ColorGray, formatDuration(elapsed), formatThroughput(speed), logger.ColorReset)
+	etaColored := fmt.Sprintf("ETA: %s%s%s", logger.ColorPurple, formatDuration(eta), logger.ColorReset)
+
+	barWidth := 30
+	filledWidth := int(float64(barWidth) * percent / 100)
+	if filledWidth > barWidth {
+		filledWidth = barWidth
+	}
+
+	var barColor string
+	if current == p.total {
+		barColor = logger.ColorGreen
+	} else if failed > 0 {
+		barColor = logger.ColorRed
+	} else if percent > 75 {
+		barColor = logger.ColorYellow
+	} else {
+		barColor = logger.ColorCyan
+	}
+
+	progressBar := fmt.Sprintf("%s%s%s%s",
+		barColor,
+		strings.Repeat("█", filledWidth),
+		logger.ColorReset,
+		strings.Repeat("░", barWidth-filledWidth))
+
+	metricText := p.getMetricText(current)
+	
+	progressLine := fmt.Sprintf("%s - %s : %s|%s| %s %s %s%s",
+		timestampColored,
+		infoColored,
+		percentColored,
+		progressBar,
+		countColored,
+		timeColored,
+		etaColored,
+		metricText)
+
+	fmt.Printf("\r%s\033[K", progressLine)
+}
+
+func (p *Progress) display() {
+	current := atomic.LoadInt64(&p.current)
 	percent := float64(current) / float64(p.total) * 100
 
 	// Only redraw if significant change or time passed
@@ -228,78 +286,7 @@ func (p *Progress) display() {
 	p.lastPercent = percent
 	p.lastUpdate = now
 
-	elapsed := time.Since(p.startTime)
-
-	// Calculate ETA and speed
-	var eta time.Duration
-	var speed float64
-	if current > 0 && elapsed > 0 {
-		speed = float64(current) / elapsed.Seconds()
-		if speed > 0 && current < p.total {
-			eta = time.Duration((float64(p.total-current) / speed) * float64(time.Second))
-		}
-	}
-
-	// Build progress line components
-	timestamp := time.Now().Format("15:04")
-	percentStr := fmt.Sprintf("%.1f%%", percent)
-	durationStr := formatDuration(elapsed)
-	etaStr := formatDuration(eta)
-	speedStr := formatThroughput(speed)
-	metricText := p.getMetricText(current)
-
-	// Use a fixed bar width for consistency
-	barWidth := 30 // Fixed width for better display
-
-	// Build progress bar
-	filledWidth := int(float64(barWidth) * percent / 100)
-	if filledWidth > barWidth {
-		filledWidth = barWidth
-	}
-
-	// Choose colors
-	var barColor string
-	if current == p.total {
-		barColor = logger.ColorGreen
-	} else if failed > 0 {
-		barColor = logger.ColorRed
-	} else if percent > 75 {
-		barColor = logger.ColorYellow
-	} else {
-		barColor = logger.ColorCyan
-	}
-
-	// Build the progress bar with proper width
-	progressBar := fmt.Sprintf("%s%s%s%s",
-		barColor,
-		strings.Repeat("█", filledWidth),
-		logger.ColorReset,
-		strings.Repeat("░", barWidth-filledWidth))
-
-	// Build progress line with proper formatting and enhanced colors
-	timestampColored := fmt.Sprintf("%s%s%s", logger.ColorBlue, timestamp, logger.ColorReset)
-	infoColored := fmt.Sprintf("%s%sINFO%s%s", logger.ColorCyan, logger.ColorBold, logger.ColorReset, logger.ColorReset)
-	percentColored := fmt.Sprintf("%s%s%s", logger.ColorYellow, percentStr, logger.ColorReset)
-	countColored := fmt.Sprintf("%s%d%s/%s%d%s", logger.ColorGreen, current, logger.ColorReset, logger.ColorGreen, p.total, logger.ColorReset)
-	timeColored := fmt.Sprintf("%s[%s, %s]%s", logger.ColorGray, durationStr, speedStr, logger.ColorReset)
-	etaColored := fmt.Sprintf("ETA: %s%s%s", logger.ColorPurple, etaStr, logger.ColorReset)
-	
-	progressLine := fmt.Sprintf("%s - %s : %s|%s| %s %s %s%s",
-		timestampColored,
-		infoColored,
-		percentColored,
-		progressBar,
-		countColored,
-		timeColored,
-		etaColored,
-		metricText)
-
-	// Don't truncate - let terminal handle wrapping
-	// Just ensure we clear to end of line
-	p.lastDisplay = progressLine
-
-	// Clear to end of line and print progress
-	fmt.Printf("\r%s\033[K", progressLine)
+	p.displayImmediate()
 }
 
 func (p *Progress) displayFinal() {

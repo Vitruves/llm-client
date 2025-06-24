@@ -15,14 +15,11 @@ model:
     #repetition_penalty: 1.1
     presence_penalty: 1.5
     #seed: 42
-    
+    stop: ["\n"]
     # Chat completion specific parameters
     stream: false
-    
-    # Mistral stop tokens
-    #stop: ["</s>", "[/INST]"]
-    #skip_special_tokens: false
-    #spaces_between_special_tokens: true
+    chat_format: "gemma"
+
 
 classification:
   template:
@@ -41,9 +38,9 @@ classification:
       - "(?i)(?:the\\s+)?(?:classification|answer|result)\\s+(?:is\\s+)?([012])"
     
     # Fallback to simple find
-    find: ["0", "1", "2"]
-    fallback: "0"
-    default: "0"
+    find: []
+    fallback: "nan"
+
     
     # Case insensitive matching
     case_sensitive: false

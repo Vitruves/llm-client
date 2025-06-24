@@ -1,0 +1,62 @@
+# Gemma2 Medical Classification (Non-Thinking)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "45s"
+
+model:
+  name: "Gemma2"  # or your specific Gemma2 model
+  parameters:
+    # Gemma2 optimized parameters
+    temperature: 0.2
+    max_tokens: 256
+    top_p: 0.95
+    top_k: 40
+    repetition_penalty: 1.05
+    presence_penalty: 0.0
+    
+    # Gemma-specific stopping
+    stop: ["<end_of_turn>", "<eos>"]
+    skip_special_tokens: false
+    spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a english medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+    
+    user: |
+      <start_of_turn>user
+      Extract the **drug-induced** side effects from the following patient drug review: ### {comment} ###. List the **drug-induced** side effects in **medical terms** (meddra) separated by comma, example : \"nausea,diarrhea,anxiety,intestinal_pain,chest_disconfort\" or "none" if no side effects. Your answer (only a list of english meddra medical terms separated by a comma):
+      <end_of_turn>
+      <start_of_turn>model
+  
+  parsing:
+    # Simple parsing for Gemma2
+    preserve_thinking: false
+    
+    # Gemma2-specific classification patterns
+    answer_patterns:
+    
+    # Fallback to simple find
+    find: []
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 60  # High throughput for Gemma2
+  batch_size: 8
+  
+  # Live metrics configuration
+  live_metrics:
+    enabled: true
+    metric: "f1"
+    ground_truth: "label"
+    average: "weighted"
+
+output:
+  directory: "./results"
+  format: "json" 

@@ -40,7 +40,7 @@ func newRootCmd() *cobra.Command {
 		Use:   "llm-client",
 		Short: color.New(color.FgCyan, color.Bold).Sprint("A versatile client for LLM classification tasks"),
 		Long: color.New(color.FgHiBlue, color.Bold).Sprint("LLM Client") +
-			color.New(color.FgWhite).Sprint(" - A versatile client designed for LLM classification tasks, offering a range of robust capabilities for data processing and analysis.\n"),
+			color.New(color.FgWhite).Sprint(" - A versatile client designed for LLM classification tasks, offering a range of robust capabilities for data processing and analysis."),
 
 		Version: version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -52,8 +52,9 @@ func newRootCmd() *cobra.Command {
 	}
 
 	// Add global flags
-	rootCmd.PersistentFlags().Bool("no-color", false, "Disable colored output")
-	rootCmd.PersistentFlags().BoolP("help", "h", false, "Show help message")
+	rootCmd.PersistentFlags().Bool("no-color", false, color.New(color.FgWhite).Sprint("Disable colored output"))
+	rootCmd.PersistentFlags().BoolP("help", "h", false, color.New(color.FgWhite).Sprint("Show help message"))
+	rootCmd.PersistentFlags().BoolP("version", "v", false, color.New(color.FgWhite).Sprint("version for llm-client"))
 
 	rootCmd.AddCommand(newRunCmd())
 	rootCmd.AddCommand(newReportCmd())
@@ -61,12 +62,14 @@ func newRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newConfigCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 
+	rootCmd.SetHelpCommand(newHelpCmd())
+
 	return rootCmd
 }
 
 func newRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run",
+		Use:   color.New(color.FgGreen).Sprint("run"),
 		Short: color.New(color.FgGreen, color.Bold).Sprint("Run LLM processing on input data"),
 		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Process input data through Large Language Models\n\n") +
 			color.New(color.FgMagenta, color.Bold).Sprint("Supported Providers:\n") +
@@ -145,8 +148,8 @@ func newRunCmd() *cobra.Command {
 
 func newReportCmd() *cobra.Command {
 	var reportCmd = &cobra.Command{
-		Use:   "report",
-		Short: color.New(color.FgMagenta, color.Bold).Sprint("Generate reports from classification results"),
+		Use:   color.New(color.FgGreen).Sprint("report"),
+		Short: color.New(color.FgHiMagenta, color.Bold).Sprint("Generate reports from classification results"),
 		Long:  color.New(color.FgHiBlue, color.Bold).Sprint("Analyze and generate detailed reports from LLM classification result files"),
 	}
 
@@ -186,7 +189,7 @@ func newCompareCmd() *cobra.Command {
 
 func newHealthCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "health",
+		Use:   color.New(color.FgGreen).Sprint("health"),
 		Short: color.New(color.FgRed, color.Bold).Sprint("Check LLM server health and configuration"),
 		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Perform health checks on LLM servers\n\n") +
 			color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
@@ -209,8 +212,8 @@ func newHealthCmd() *cobra.Command {
 
 func newConfigCmd() *cobra.Command {
 	var configCmd = &cobra.Command{
-		Use:   "config",
-		Short: color.New(color.FgYellow, color.Bold).Sprint("Configuration utilities"),
+		Use:   color.New(color.FgGreen).Sprint("config"),
+		Short: color.New(color.FgMagenta, color.Bold).Sprint("Configuration utilities"),
 		Long:  color.New(color.FgWhite).Sprint("Validate configurations and test request/response processing"),
 	}
 
@@ -221,7 +224,7 @@ func newConfigCmd() *cobra.Command {
 
 func newConfigValidateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "validate [config-file]",
+		Use:   color.New(color.FgCyan).Sprint("validate [config-file]"),
 		Short: color.New(color.FgYellow).Sprint("Validate configuration file"),
 		Long: color.New(color.FgWhite).Sprint("Validate configuration file and optionally test with sample data.\n\n") +
 			color.New(color.FgGreen, color.Bold).Sprint("Examples:\n") +
@@ -243,7 +246,7 @@ func newConfigValidateCmd() *cobra.Command {
 
 func newCompletionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   color.New(color.FgCyan).Sprint("completion [shell]"),
+		Use:   color.New(color.FgGreen).Sprint("completion"),
 		Short: color.New(color.FgYellow, color.Bold).Sprint("Generate the autocompletion script for the specified shell"),
 		Long: color.New(color.FgWhite).Sprint(`To load completions:
 
@@ -298,6 +301,15 @@ Powershell:
 				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
 			}
 		},
+	}
+}
+
+func newHelpCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   color.New(color.FgGreen).Sprint("help [command]"),
+		Short: color.New(color.FgWhite).Sprint("Help about any command"),
+		Long: color.New(color.FgWhite).Sprint("Help provides help for any command in the application.\n") +
+			color.New(color.FgWhite).Sprint("Simply type "+color.New(color.FgGreen).Sprint("llm-client help [path to command]")+" for full details."),
 	}
 }
 

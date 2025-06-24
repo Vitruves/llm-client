@@ -52,10 +52,23 @@ func newRootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable colored output")
 	rootCmd.PersistentFlags().BoolP("help", "h", false, "Show help message")
 
-	rootCmd.AddCommand(newRunCmd())
-	rootCmd.AddCommand(newReportCmd())
-	rootCmd.AddCommand(newHealthCmd())
-	rootCmd.AddCommand(newConfigCmd())
+	// Color subcommands by overriding their names  
+	runCmd := newRunCmd()
+	runCmd.Use = color.New(color.FgGreen, color.Bold).Sprint("run")
+	
+	reportCmd := newReportCmd()
+	reportCmd.Use = color.New(color.FgMagenta, color.Bold).Sprint("report")
+	
+	healthCmd := newHealthCmd()
+	healthCmd.Use = color.New(color.FgRed, color.Bold).Sprint("health")
+	
+	configCmd := newConfigCmd()
+	configCmd.Use = color.New(color.FgYellow, color.Bold).Sprint("config")
+
+	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(reportCmd)
+	rootCmd.AddCommand(healthCmd)
+	rootCmd.AddCommand(configCmd)
 
 	return rootCmd
 }
@@ -146,8 +159,14 @@ func newReportCmd() *cobra.Command {
 		Long:  color.New(color.FgHiBlue, color.Bold).Sprint("Analyze and generate detailed reports from LLM classification result files"),
 	}
 
-	reportCmd.AddCommand(newAnalyzeCmd())
-	reportCmd.AddCommand(newCompareCmd())
+	analyzeCmd := newAnalyzeCmd()
+	analyzeCmd.Use = color.New(color.FgBlue, color.Bold).Sprint("analyze") + " [result-file]"
+	
+	compareCmd := newCompareCmd()
+	compareCmd.Use = color.New(color.FgBlue, color.Bold).Sprint("compare") + " [file1] [file2]"
+	
+	reportCmd.AddCommand(analyzeCmd)
+	reportCmd.AddCommand(compareCmd)
 
 	return reportCmd
 }
@@ -210,7 +229,10 @@ func newConfigCmd() *cobra.Command {
 		Long:  color.New(color.FgHiBlue, color.Bold).Sprint("Validate configurations and test request/response processing"),
 	}
 
-	configCmd.AddCommand(newConfigValidateCmd())
+	validateCmd := newConfigValidateCmd()
+	validateCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("validate") + " [config-file]"
+	
+	configCmd.AddCommand(validateCmd)
 
 	return configCmd
 }

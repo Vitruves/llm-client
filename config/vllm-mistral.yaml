@@ -1,0 +1,58 @@
+# Qwen2.5 Medical Classification (Non-Thinking)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "120s"
+
+model:
+  name: "Mistral"  # or your specific Qwen2.5 model
+  parameters:
+    # Qwen2.5 optimized parameters for fast classification
+    temperature: 0.1
+    max_tokens: 3
+    #top_p: 0.1
+    #top_k: 1
+    #repetition_penalty: 1
+    #presence_penalty: 0.0
+    #seed: 42
+    
+    # Standard stopping
+    #stop: ["[/INST]"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: "You are a medical expert specialized in detecting drug-induced weight changes."
+    
+    user: "Classify medical drug record about a medication into categories: \"0\" for no weight change mentioned, \"1\" for weight GAIN drug-induced or weight gain mentioned if no drug mentioned, \"2\" for weight LOSS drug-induced or weight loss mentioned if no drug mentioned. Testimony: >>> {text} <<<. Answer with classification number only:"
+  
+  parsing:
+    # Simple parsing for non-thinking models
+    preserve_thinking: false
+    
+    # Direct classification patterns
+    answer_patterns:
+      - "\\b([012])\\b"
+    
+    # Fallback to simple find
+    find: ["0", "1", "2"]
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 1  # Higher throughput for non-thinking
+  batch_size: 1
+  
+  # Live metrics configuration
+  live_metrics:
+    enabled: true
+    metric: "kappa"
+    ground_truth: "label"
+
+output:
+  directory: "./results"
+  format: "json" 

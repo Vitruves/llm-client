@@ -1,0 +1,52 @@
+provider:
+  name: "llamacpp"
+  base_url: "http://localhost:8080"
+  timeout: "120s"
+
+model:
+  name: "gemma-3-4b-it"
+  parameters:
+    temperature: 0.2
+    top_p: 0.9
+    top_k: 40
+    max_tokens: 16
+    repeat_penalty: 1.1
+    presence_penalty: 0.0
+    frequency_penalty: 0.0
+    stop: ["\n"]
+
+classification:
+  template:
+    system: ""
+    user: |
+      Classify the following medical testimony into one of the following categories:
+      - "0": No weight change mentioned.
+      - "1": Weight gain mentioned (drug-induced or otherwise).
+      - "2": Weight loss mentioned (drug-induced or otherwise).
+
+      Testimony: {text}
+
+      Respond with only the number corresponding to the appropriate category.
+
+  parsing:
+    preserve_thinking: false
+    answer_patterns:
+      - "^\\s*([012])\\s*$"
+    find: ["0", "1", "2"]
+    fallback: "0"
+    case_sensitive: false
+    exact_match: true
+
+processing:
+  workers: 4
+  batch_size: 1
+
+  live_metrics:
+    enabled: true
+    metric: "f1"
+    ground_truth: "label"
+    average: "macro"
+
+output:
+  directory: "./results"
+  format: "json"

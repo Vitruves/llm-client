@@ -1,0 +1,60 @@
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "2400s"
+
+model:
+  name: "Qwen3"
+  parameters:
+    temperature: 0.6
+    presence_penalty: 1.5
+    #max_tokens: 16000
+
+classification:
+  template:
+    system: |
+      Medical weight extraction specialist. Output: signed kg value or "nan". Positive (+X.XX) = weight gain, Negative (-X.XX) = weight loss.
+    user: |
+      Extract net quantifiable weight change from drug review: ### {comment} ###.
+  
+      **Conversion & Format:**
+      • 1lb = 0.45kg, 1stone = 6.35kg
+      • Round to lower 2 decimals
+      • Output format: +X.XX, -X.XX, or "nan"
+  
+      **Extraction Rules:**
+      1. **Use explicit numeric mentions:** "lost 10 pounds", "gained 5 kg"
+      2. **Calculate before/after differences:** Find starting weight vs ending weight
+      3. **For multiple values:**
+        - If total change stated with prior portion: subtract prior (e.g., "down 35 lbs, 20 were prior" → 15 lbs attributable)
+        - If incremental changes to final weight: use net change from relevant starting point
+      4. **Output "nan" for:**
+        - Vague descriptions ("a lot", "some weight", "significant")
+        - Goals/intentions ("hope to lose", "want to reach")
+        - Single weights without comparison
+        - Qualitative only ("no appetite", "clothes loose")
+        - If the weight is not mentioned, output "nan"
+        - If confusing information, output "nan"
+  
+      Think briefly, then output ONLY the final value or "nan".
+
+  field_mapping:
+    input_text_field: "comment"
+
+  parsing:
+    thinking_tags: "<think></think>"
+    preserve_thinking: yes
+    answer_patterns:
+      - "([+-]?\\d+(?:\\.\\d{1,2})?|nan)\\s*$"
+      - "\\b([+-]?\\d+(?:\\.\\d{1,2})?|nan)\\b(?=\\s*$)"
+    fallback: "model_error"
+
+processing:
+  workers: 200
+  batch_size: 1
+  repeat: 1
+
+output:
+  directory: "./results/PSYCHOTROP-Qwen3"
+  format: "parquet"
+  include_thinking: true

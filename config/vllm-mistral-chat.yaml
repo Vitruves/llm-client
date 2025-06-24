@@ -1,0 +1,70 @@
+# Mistral Medical Classification (Chat Completion Format)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "120s"
+
+model:
+  name: "Mistral-7B-Instruct-v0.3"  # or your specific Mistral model
+  parameters:
+    # Mistral optimized parameters for fast classification
+    temperature: 1
+    max_tokens: 1
+    #top_p: 0.1
+    top_k: 10
+    #repetition_penalty: 1.1
+    presence_penalty: 1.5
+    #seed: 42
+    
+    # Chat completion specific parameters
+    stream: false
+    
+    # Mistral stop tokens
+    #stop: ["</s>", "[/INST]"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: "You are a medical expert specialized in detecting drug-induced weight changes. You must classify medical testimonies into exactly one of three categories: 0 (no weight change mentioned), 1 (weight gain mentioned), or 2 (weight loss mentioned). Always respond with only the classification number."
+    
+    user: "Classify this medical testimony into categories:\n- \"0\" for no weight change mentioned\n- \"1\" for weight GAIN (drug-induced or weight gain mentioned if no drug mentioned)\n- \"2\" for weight LOSS (drug-induced or weight loss mentioned if no drug mentioned)\n\nTestimony: {text}\n\nClassification:"
+  
+  parsing:
+    # Simple parsing for chat completion responses
+    preserve_thinking: false
+    
+    # Chat completion response patterns
+    answer_patterns:
+      - "(?i)(?:classification|answer)\\s*:?\\s*([012])"
+      - "\\b([012])\\b"
+      - "(?i)(?:the\\s+)?(?:classification|answer|result)\\s+(?:is\\s+)?([012])"
+    
+    # Fallback to simple find
+    find: ["0", "1", "2"]
+    fallback: "0"
+    default: "0"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 4  # Higher throughput for chat completions
+  batch_size: 1
+  repeat: 1
+  rate_limit: false
+  
+  # FlashInfer safe mode for better performance
+  flashinfer_safe: true
+  
+  # Live metrics configuration
+  live_metrics:
+    enabled: true
+    metric: "kappa"
+    ground_truth: "label"
+    #average: "macro"
+
+output:
+  directory: "./results/experiments"
+  format: "json" 

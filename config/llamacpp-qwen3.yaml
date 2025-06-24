@@ -1,0 +1,51 @@
+provider:
+  name: "llamacpp"
+  base_url: "http://localhost:8080"
+  timeout: "600s"
+
+model:
+  name: "Qwen/Qwen2.5-Coder-32B-Instruct"
+  parameters:
+    temperature: 0.6
+    max_tokens: 1024
+    top_p: 0.95
+    top_k: 1
+    presence_penalty: 1.0
+    seed: 42
+    stop: ["<|im_end|>\n"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: "You are a medical expert specialized in detecting drug-induced weight changes."
+    user: "Classify medical testimonies into these categories: 0: no weight change mentioned. 1: drug-induced weight gain or weight gain mentioned IF no drug mentioned. 2: drug-induced weight loss or weight loss mentioned IF no drug mentioned. Think through your analysis step by step, then provide your classification number. The review: {text}. Your classification only (0, 1 or 2):"
+  
+  parsing:
+    thinking_tags: "<think></think>"
+    preserve_thinking: true
+    answer_patterns:
+      - "</think>\\s*[\\n\\r]*\\s*(?:.*?)?(?:classification|answer)\\s*(?:is\\s*)?:?\\s*([012])"
+      - "</think>\\s*[\\n\\r]*\\s*(?:.*?)?\\b([012])\\b"
+      - "(?i)(?:final\\s+)?(?:classification|answer)\\s*(?:is\\s*)?:?\\s*([012])"
+      - "(?i)classification\\s*:?\\s*([012])"
+      - "\\b([012])\\s*$"
+    find: ["0", "1", "2"]
+    fallback: "nan"
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 1
+  batch_size: 1
+  repeat: 1
+  rate_limit: false
+  live_metrics:
+    enabled: true
+    metric: "F1"
+    ground_truth: "label"
+    average: "macro"
+
+output:
+  directory: "./results"
+  format: "json"

@@ -1,0 +1,5 @@
+root ::= (thinking "\n")* choice
+
+thinking ::= [^\n]+
+
+choice ::= "0" | "1" | "2"

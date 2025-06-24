@@ -1,0 +1,62 @@
+# Qwen2.5 Medical Classification (Non-Thinking)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "120s"
+
+model:
+  name: "Qwen2.5"  # or your specific Qwen2.5 model
+  parameters:
+    # Qwen2.5 optimized parameters for fast classification
+    temperature: 0.6
+    #max_tokens: 512
+    #top_p: 0.1
+    #top_k: 1
+    #repetition_penalty: 1
+    presence_penalty: 1.5
+    #seed: 42
+    
+    # Standard stopping
+    stop: ["<|im_end|>"]
+    skip_special_tokens: false
+    spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a english medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+    
+    user: |
+      Extract the **drug-induced** side effects from the following patient drug review: ### {comment} ###. List the **drug-induced** side effects in **medical terms** (meddra) separated by comma, example : \"nausea,diarrhea,anxiety,intestinal_pain,chest_disconfort\" or "none" if no side effects. Your answer (only a list of english meddra medical terms separated by a comma):
+
+  field_mapping:
+    input_text_field: "comment"
+  
+  parsing:
+    # Simple parsing for non-thinking models
+    #preserve_thinking: false
+    
+    # Direct classification patterns
+    answer_patterns:
+    
+    # Fallback to simple find
+    find: []
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 50  # Higher throughput for non-thinking
+  batch_size: 1
+  
+  # Live metrics configuration
+  #live_metrics:
+  #  enabled: true
+  #  metric: "accuracy"
+  #  ground_truth: "label"
+
+output:
+  directory: "./results/test-SE"
+  format: "parquet" 

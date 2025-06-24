@@ -1,0 +1,49 @@
+provider:
+  name: "llamacpp"
+  base_url: "http://0.0.0.0:8080"
+  timeout: "300s"
+
+model:
+  name: "qwen2.5"
+  parameters:
+    temperature: 0
+    max_tokens: 1
+    #top_p: 0.1
+    #top_k: 40
+    #repeat_penalty: 1.05
+    #seed: 42
+    #stop: ["<|im_end|>", "<|endoftext|>"]
+    #chat_format: "chatml"
+
+classification:
+  template:
+    system: "You are a medical expert specialized in detecting drug-induced weight changes."
+    user: "Classify the drug review into categories: \"0\" for no weight change mentioned, \"1\" for weight GAIN drug-induced or weight gain mentioned if no drug mentioned, \"2\" for weight LOSS drug-induced or weight loss mentioned if no drug mentioned. Patient review: ### {text} ###."
+  
+  parsing:
+    #thinking_tags: ""
+    #preserve_thinking: false
+    
+    answer_patterns:
+      - "\\b([012])\\s*$"
+    
+    find: ["0", "1", "2"]
+    fallback: "0"
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 4
+  batch_size: 1
+  repeat: 1
+  rate_limit: false
+  
+  live_metrics:
+    enabled: true
+    metric: "kappa"
+    ground_truth: "label"
+    #average: "macro"
+
+output:
+  directory: "./results/qwen25-llamacpp"
+  format: "json"

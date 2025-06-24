@@ -1,0 +1,78 @@
+# Qwen2.5 Medical Classification (Non-Thinking)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "120s"
+
+model:
+  name: "Qwen2.5"  # or your specific Qwen2.5 model
+  parameters:
+    # Qwen2.5 optimized parameters for fast classification
+    temperature: 0
+    max_tokens: 512
+    top_p: 0.1
+    top_k: 1
+    repetition_penalty: 1
+    presence_penalty: 0.0
+    seed: 42
+    
+    # Standard stopping
+    stop: ["<|im_end|>"]
+    skip_special_tokens: false
+    spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a medical expert specialized in detecting drug-induced weight changes. 
+      
+      Classify the medical text into exactly one category:
+      - 0: no weight change mentioned
+      - 1: drug-induced weight gain or weight gain mentioned but no drug mentioned  
+      - 2: drug-induced weight loss or weight loss mentioned but no drug mentioned
+      
+      Respond with only the classification number (0, 1, or 2).
+    
+    user: |
+      <|im_start|>user
+      Classify this medical text for drug-induced weight changes.
+      
+      Text: {text}
+      
+      Classification:
+      <|im_end|>
+      <|im_start|>assistant
+      Classification:
+  
+  parsing:
+    # Simple parsing for non-thinking models
+    preserve_thinking: false
+    
+    # Direct classification patterns
+    answer_patterns:
+      - "(?i)classification\\s*:?\\s*([012])"
+      - "(?i)answer\\s*:?\\s*([012])"
+      - "^\\s*([012])\\s*$"
+      - "\\b([012])\\b"
+    
+    # Fallback to simple find
+    find: ["0", "1", "2"]
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 50  # Higher throughput for non-thinking
+  batch_size: 5
+  
+  # Live metrics configuration
+  live_metrics:
+    enabled: true
+    metric: "accuracy"
+    ground_truth: "label"
+
+output:
+  directory: "./results"
+  format: "json" 

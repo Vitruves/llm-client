@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 // MockClient implements the models.Client interface for testing

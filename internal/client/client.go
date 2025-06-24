@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 func NewClient(cfg *models.Config) (models.Client, error) {

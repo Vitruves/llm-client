@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 
 	"github.com/parquet-go/parquet-go"
 	"github.com/xuri/excelize/v2"

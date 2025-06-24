@@ -2,7 +2,7 @@ package progress
 
 import (
 	"fmt"
-	"llm-client/internal/logger"
+	"github.com/Vitruves/llm-client/internal/logger"
 	"os"
 	"os/signal"
 	"regexp"
@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"llm-client/internal/metrics"
+	"github.com/Vitruves/llm-client/internal/metrics"
 )
 
 type Progress struct {

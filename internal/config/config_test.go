@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 func TestLoad(t *testing.T) {

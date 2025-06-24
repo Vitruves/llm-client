@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"llm-client/internal/client"
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/client"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 // TestProcessorIntegration is a comprehensive integration test that tests all config parameters

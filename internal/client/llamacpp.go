@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 type LlamaCppClient struct {

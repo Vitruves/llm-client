@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 
 	"gopkg.in/yaml.v3"
 )

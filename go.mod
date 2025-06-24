@@ -1,4 +1,4 @@
-module llm-client
+module github.com/Vitruves/llm-client
 
 go 1.22
 

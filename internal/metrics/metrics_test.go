@@ -3,7 +3,7 @@ package metrics
 import (
 	"testing"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 func TestNewCalculator(t *testing.T) {

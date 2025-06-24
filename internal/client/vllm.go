@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 var (

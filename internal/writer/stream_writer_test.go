@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 func TestNewStreamWriter(t *testing.T) {

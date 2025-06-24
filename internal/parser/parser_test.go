@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"llm-client/internal/models"
+	"github.com/Vitruves/llm-client/internal/models"
 )
 
 func TestParse(t *testing.T) {

@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"llm-client/internal/logger"
+	"github.com/Vitruves/llm-client/internal/logger"
 	"os"
 	"runtime"
 )

@@ -65,19 +65,29 @@ func newRootCmd() *cobra.Command {
 	configCmd := newConfigCmd()
 	configCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("config")
 	
-	// Color help and completion subcommands
-	rootCmd.InitDefaultHelpCmd()
-	helpCmd := rootCmd.Commands()[len(rootCmd.Commands())-1]
-	helpCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("help") + " [command]"
-	
-	rootCmd.InitDefaultCompletionCmd()
-	completionCmd := rootCmd.Commands()[len(rootCmd.Commands())-1]
-	completionCmd.Use = color.New(color.FgCyan, color.Bold).Sprint("completion") + " [bash|zsh|fish|powershell]"
-
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(reportCmd)
 	rootCmd.AddCommand(healthCmd)
 	rootCmd.AddCommand(configCmd)
+
+	// Color help and completion subcommands after adding other commands
+	rootCmd.InitDefaultHelpCmd()
+	if len(rootCmd.Commands()) > 0 {
+		for _, cmd := range rootCmd.Commands() {
+			if cmd.Name() == "help" {
+				cmd.Use = color.New(color.FgCyan, color.Bold).Sprint("help") + " [command]"
+			}
+		}
+	}
+	
+	rootCmd.InitDefaultCompletionCmd()
+	if len(rootCmd.Commands()) > 0 {
+		for _, cmd := range rootCmd.Commands() {
+			if cmd.Name() == "completion" {
+				cmd.Use = color.New(color.FgCyan, color.Bold).Sprint("completion") + " [bash|zsh|fish|powershell]"
+			}
+		}
+	}
 
 	return rootCmd
 }

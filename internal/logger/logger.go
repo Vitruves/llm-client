@@ -244,14 +244,19 @@ func Fatal(message string, args ...interface{}) {
 // Success logs a success message with green color
 func Success(message string, args ...interface{}) {
 	if shouldLog(INFO) {
-		fmt.Println(formatMessage(INFO, message, args...))
+		timestamp := colorKey.Sprintf("%s", time.Now().Format("15:04"))
+		successMsg := colorSuccess.Sprintf("SUCCESS")
+		formattedMsg := fmt.Sprintf(message, args...)
+		fmt.Printf("%s - %s : %s\n", timestamp, successMsg, formattedMsg)
 	}
 }
 
 // Header logs a header message for sections
 func Header(message string, args ...interface{}) {
 	if shouldLog(INFO) {
-		formattedMsg := fmt.Sprintf(message, args...)
-		fmt.Println(formatMessage(INFO, formattedMsg))
+		timestamp := colorKey.Sprintf("%s", time.Now().Format("15:04"))
+		headerMsg := colorHeader.Sprintf("HEADER")
+		formattedMsg := colorHeader.Sprintf(message, args...)
+		fmt.Printf("%s - %s : %s\n", timestamp, headerMsg, formattedMsg)
 	}
 }

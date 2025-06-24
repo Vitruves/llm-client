@@ -276,15 +276,22 @@ func (p *Progress) display() {
 		logger.ColorReset,
 		strings.Repeat("░", barWidth-filledWidth))
 
-	// Build progress line with proper formatting
-	// Keep it simple to avoid truncation issues
-	progressLine := fmt.Sprintf("%s - %sINFO%s : %s|%s| %d/%d [%s, %s] ETA: %s%s",
-		timestamp,
-		logger.ColorBlue, logger.ColorReset,
-		percentStr,
+	// Build progress line with proper formatting and enhanced colors
+	timestampColored := fmt.Sprintf("%s%s%s", logger.ColorBlue, timestamp, logger.ColorReset)
+	infoColored := fmt.Sprintf("%s%sINFO%s%s", logger.ColorCyan, logger.ColorBold, logger.ColorReset, logger.ColorReset)
+	percentColored := fmt.Sprintf("%s%s%s", logger.ColorYellow, percentStr, logger.ColorReset)
+	countColored := fmt.Sprintf("%s%d%s/%s%d%s", logger.ColorGreen, current, logger.ColorReset, logger.ColorGreen, p.total, logger.ColorReset)
+	timeColored := fmt.Sprintf("%s[%s, %s]%s", logger.ColorGray, durationStr, speedStr, logger.ColorReset)
+	etaColored := fmt.Sprintf("ETA: %s%s%s", logger.ColorPurple, etaStr, logger.ColorReset)
+	
+	progressLine := fmt.Sprintf("%s - %s : %s|%s| %s %s %s%s",
+		timestampColored,
+		infoColored,
+		percentColored,
 		progressBar,
-		current, p.total,
-		durationStr, speedStr, etaStr,
+		countColored,
+		timeColored,
+		etaColored,
 		metricText)
 
 	// Don't truncate - let terminal handle wrapping

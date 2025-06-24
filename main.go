@@ -37,17 +37,8 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Use:   "llm-client",
-		Short: color.New(color.FgCyan, color.Bold).Sprint("A powerful, configurable client for LLM classification tasks"),
-		Long: color.New(color.FgHiBlue, color.Bold).Sprint("LLM Client") +
-			color.New(color.FgWhite).Sprint(" - A powerful, configurable client for LLM classification tasks\n\n") +
-			color.New(color.FgGreen, color.Bold).Sprint("Features:\n") +
-			color.New(color.FgYellow).Sprint("• Multiple LLM providers (vLLM, llama.cpp, OpenAI)\n") +
-			color.New(color.FgYellow).Sprint("• Concurrent processing with worker pools\n") +
-			color.New(color.FgYellow).Sprint("• Advanced parsing and consensus voting\n") +
-			color.New(color.FgYellow).Sprint("• Live metrics and progress tracking\n") +
-			color.New(color.FgYellow).Sprint("• Multiple output formats (JSON, CSV, Parquet, Excel)\n") +
-			color.New(color.FgYellow).Sprint("• Resumable processing with state management"),
+		Use:     "llm-client",
+		Short:   color.New(color.FgCyan, color.Bold).Sprint("A versatile, configurable client for LLM server inference"),
 		Version: version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Check for NO_COLOR environment variable
@@ -164,7 +155,7 @@ func newReportCmd() *cobra.Command {
 func newAnalyzeCmd() *cobra.Command {
 	var analyzeCmd = &cobra.Command{
 		Use:   "analyze [result-file]",
-		Short: "Analyze classification results",
+		Short: color.New(color.FgBlue, color.Bold).Sprint("Analyze classification results"),
 		Args:  cobra.ExactArgs(1),
 		RunE:  runAnalyze,
 	}
@@ -178,7 +169,7 @@ func newAnalyzeCmd() *cobra.Command {
 func newCompareCmd() *cobra.Command {
 	var compareCmd = &cobra.Command{
 		Use:   "compare [file1] [file2]",
-		Short: "Compare two result files",
+		Short: color.New(color.FgBlue, color.Bold).Sprint("Compare two result files"),
 		Args:  cobra.ExactArgs(2),
 		RunE:  runCompare,
 	}
@@ -215,8 +206,8 @@ func newHealthCmd() *cobra.Command {
 func newConfigCmd() *cobra.Command {
 	var configCmd = &cobra.Command{
 		Use:   "config",
-		Short: "Configuration utilities",
-		Long:  "Validate configurations and test request/response processing",
+		Short: color.New(color.FgMagenta, color.Bold).Sprint("Configuration utilities"),
+		Long:  color.New(color.FgHiBlue, color.Bold).Sprint("Validate configurations and test request/response processing"),
 	}
 
 	configCmd.AddCommand(newConfigValidateCmd())
@@ -227,13 +218,12 @@ func newConfigCmd() *cobra.Command {
 func newConfigValidateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate [config-file]",
-		Short: "Validate configuration file",
-		Long: `Validate configuration file and optionally test with sample data.
-
-Examples:
-  llm-client config validate config.yaml
-  llm-client config validate config.yaml --test-file data.csv
-  llm-client config validate config.yaml --test-file data.csv --show-request`,
+		Short: color.New(color.FgYellow, color.Bold).Sprint("Validate configuration file"),
+		Long: color.New(color.FgHiBlue, color.Bold).Sprint("Validate configuration file and optionally test with sample data\n\n") +
+			 color.New(color.FgMagenta, color.Bold).Sprint("Examples:\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client config validate config.yaml\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client config validate config.yaml --test-file data.csv\n") +
+			 color.New(color.FgYellow).Sprint("  llm-client config validate config.yaml --test-file data.csv --show-request"),
 		Args: cobra.ExactArgs(1),
 		RunE: runConfigValidate,
 	}

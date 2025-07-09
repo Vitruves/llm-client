@@ -49,7 +49,7 @@ classification:
       
       Now extract the side effects from the following review above as a comma-separated list of side effect without any other text.
       
-      The review : >>> {comment} <<<
+      The review to analyze : >>> {comment} <<<
       
       Your answer: 
 

@@ -23,7 +23,6 @@ import (
 	"github.com/Vitruves/llm-client/internal/progress"
 	"github.com/Vitruves/llm-client/internal/writer"
 
-	"github.com/parquet-go/parquet-go"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -411,10 +410,7 @@ func (p *Processor) processWithWorkersSimple(ctx context.Context, data []models.
 						return
 					}
 
-					if atomic.LoadInt32(&p.cancelRequests) > 0 {
-						return
-					}
-
+					// Process the row even if cancel is requested - we already received it
 					result := p.processRow(ctx, row, opts.Verbose)
 
 					select {
@@ -498,10 +494,7 @@ func (p *Processor) processWithWorkersStreaming(ctx context.Context, data []mode
 						return
 					}
 
-					if atomic.LoadInt32(&p.cancelRequests) > 0 {
-						return
-					}
-
+					// Process the row even if cancel is requested - we already received it
 					result := p.processRow(ctx, row, opts.Verbose)
 
 					select {
@@ -594,10 +587,7 @@ func (p *Processor) workerWithResume(ctx context.Context, workerID int, dataCh <
 				return
 			}
 
-			if atomic.LoadInt32(&p.cancelRequests) > 0 {
-				return
-			}
-
+			// Process the row even if cancel is requested - we already received it
 			result := p.processRow(ctx, row, verbose)
 
 			select {
@@ -652,9 +642,7 @@ func (p *Processor) collectResults(resultsCh <-chan models.Result) []models.Resu
 	var allResults []models.Result
 	for result := range resultsCh {
 		allResults = append(allResults, result)
-		if atomic.LoadInt32(&p.cancelRequests) > 0 {
-			break
-		}
+		// Don't break early - collect all results that have been processed
 	}
 	return allResults
 }
@@ -1126,7 +1114,7 @@ func (p *Processor) saveResults(results []models.Result) error {
 	case "csv":
 		return p.saveAsCSV(results, timestamp)
 	case "parquet":
-		return p.saveAsParquet(results, timestamp)
+		return p.saveAsArrowParquet(results, timestamp)
 	case "xlsx":
 		return p.saveAsXLSX(results, timestamp)
 	default:
@@ -1177,15 +1165,15 @@ func (p *Processor) saveAsCSV(results []models.Result, timestamp string) error {
 	}
 	sort.Strings(sortedOriginalHeaders)
 
-	// Write header
-	header := []string{"index", "input_text", "ground_truth", "final_answer", "success", "response_time_ms"}
-	header = append(header, sortedOriginalHeaders...)
-
+	// Write header - first add original columns, then our result columns
+	header := sortedOriginalHeaders
+	header = append(header, "raw_response")
 	if p.config.Output.IncludeThinking {
 		header = append(header, "thinking_content")
 	}
-	if p.config.Output.IncludeRawResponse {
-		header = append(header, "raw_response")
+	header = append(header, "response_time", "inference_success", "final_answer")
+	if p.config.Processing.LiveMetrics != nil && p.config.Processing.LiveMetrics.GroundTruth != "" {
+		header = append(header, "ground_truth")
 	}
 
 	if err := writer.Write(header); err != nil {
@@ -1194,26 +1182,25 @@ func (p *Processor) saveAsCSV(results []models.Result, timestamp string) error {
 
 	// Write data
 	for _, result := range results {
-		row := []string{
-			strconv.Itoa(result.Index),
-			result.InputText,
-			result.GroundTruth,
-			result.FinalAnswer,
-			strconv.FormatBool(result.Success),
-			strconv.FormatInt(result.ResponseTime.Nanoseconds()/1000000, 10),
-		}
-
-		// Add original data values
+		var row []string
+		
+		// Add original data values in the same order as header
 		for _, h := range sortedOriginalHeaders {
 			val := result.OriginalData[h]
 			row = append(row, fmt.Sprintf("%v", val))
 		}
-
+		
+		// Add our result columns in the same order as header
+		row = append(row, result.RawResponse)
 		if p.config.Output.IncludeThinking {
 			row = append(row, result.ThinkingContent)
 		}
-		if p.config.Output.IncludeRawResponse {
-			row = append(row, result.RawResponse)
+		row = append(row, strconv.FormatInt(result.ResponseTime.Nanoseconds()/1000000, 10)) // response_time in ms
+		row = append(row, strconv.FormatBool(result.Success)) // inference_success
+		row = append(row, result.FinalAnswer) // final_answer
+		
+		if p.config.Processing.LiveMetrics != nil && p.config.Processing.LiveMetrics.GroundTruth != "" {
+			row = append(row, result.GroundTruth)
 		}
 
 		if err := writer.Write(row); err != nil {
@@ -1224,54 +1211,6 @@ func (p *Processor) saveAsCSV(results []models.Result, timestamp string) error {
 	return nil
 }
 
-// ParquetResult represents the structure for parquet output
-type ParquetResult struct {
-	Index           int32  `parquet:"index"`
-	InputText       string `parquet:"input_text"`
-	GroundTruth     string `parquet:"ground_truth"`
-	FinalAnswer     string `parquet:"final_answer"`
-	Success         bool   `parquet:"success"`
-	ResponseTimeMs  int64  `parquet:"response_time_ms"`
-	ThinkingContent string `parquet:"thinking_content,optional"`
-	RawResponse     string `parquet:"raw_response,optional"`
-	OriginalData    string `parquet:"original_data,optional"`
-}
-
-func (p *Processor) saveAsParquet(results []models.Result, timestamp string) error {
-	filename := filepath.Join(p.config.Output.Directory, fmt.Sprintf("results_%s.parquet", timestamp))
-
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Convert results to parquet-compatible format
-	parquetResults := make([]ParquetResult, len(results))
-	for i, result := range results {
-		// Convert OriginalData map to JSON string for parquet compatibility
-		var originalDataStr string
-		if len(result.OriginalData) > 0 {
-			if jsonBytes, err := json.Marshal(result.OriginalData); err == nil {
-				originalDataStr = string(jsonBytes)
-			}
-		}
-
-		parquetResults[i] = ParquetResult{
-			Index:           int32(result.Index),
-			InputText:       result.InputText,
-			GroundTruth:     result.GroundTruth,
-			FinalAnswer:     result.FinalAnswer,
-			Success:         result.Success,
-			ResponseTimeMs:  result.ResponseTime.Nanoseconds() / 1000000,
-			ThinkingContent: result.ThinkingContent,
-			RawResponse:     result.RawResponse,
-			OriginalData:    originalDataStr,
-		}
-	}
-
-	return parquet.Write(file, parquetResults)
-}
 
 func (p *Processor) saveAsXLSX(results []models.Result, timestamp string) error {
 	filename := filepath.Join(p.config.Output.Directory, fmt.Sprintf("results_%s.xlsx", timestamp))
@@ -1296,15 +1235,15 @@ func (p *Processor) saveAsXLSX(results []models.Result, timestamp string) error 
 	}
 	sort.Strings(sortedOriginalHeaders)
 
-	// Write header
-	headers := []string{"Index", "Input Text", "Ground Truth", "Final Answer", "Success", "Response Time (ms)"}
-	headers = append(headers, sortedOriginalHeaders...)
-
+	// Write header - first add original columns, then our result columns
+	headers := sortedOriginalHeaders
+	headers = append(headers, "Raw Response")
 	if p.config.Output.IncludeThinking {
 		headers = append(headers, "Thinking Content")
 	}
-	if p.config.Output.IncludeRawResponse {
-		headers = append(headers, "Raw Response")
+	headers = append(headers, "Response Time", "Inference Success", "Final Answer")
+	if p.config.Processing.LiveMetrics != nil && p.config.Processing.LiveMetrics.GroundTruth != "" {
+		headers = append(headers, "Ground Truth")
 	}
 
 	for i, header := range headers {
@@ -1315,29 +1254,33 @@ func (p *Processor) saveAsXLSX(results []models.Result, timestamp string) error 
 	// Write data
 	for i, result := range results {
 		rowNum := i + 2 // Start from row 2 (after header)
-
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", rowNum), result.Index)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", rowNum), result.InputText)
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", rowNum), result.GroundTruth)
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", rowNum), result.FinalAnswer)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", rowNum), result.Success)
-		f.SetCellValue(sheetName, fmt.Sprintf("F%d", rowNum), result.ResponseTime.Nanoseconds()/1000000)
-
-		col := 'G'
-		// Add original data values dynamically
+		col := 'A'
+		
+		// Add original data values in the same order as header
 		for _, h := range sortedOriginalHeaders {
 			val := result.OriginalData[h]
 			f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), fmt.Sprintf("%v", val))
 			col++
 		}
-
+		
+		// Add our result columns in the same order as header
+		f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.RawResponse)
+		col++
+		
 		if p.config.Output.IncludeThinking {
 			f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.ThinkingContent)
 			col++
 		}
-		if p.config.Output.IncludeRawResponse {
-			f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.RawResponse)
-			col++
+		
+		f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.ResponseTime.Nanoseconds()/1000000) // response_time in ms
+		col++
+		f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.Success) // inference_success
+		col++
+		f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.FinalAnswer) // final_answer
+		col++
+		
+		if p.config.Processing.LiveMetrics != nil && p.config.Processing.LiveMetrics.GroundTruth != "" {
+			f.SetCellValue(sheetName, fmt.Sprintf("%c%d", col, rowNum), result.GroundTruth)
 		}
 	}
 
@@ -1350,19 +1293,22 @@ func (p *Processor) buildOutputData(results []models.Result) map[string]interfac
 	outputResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
 		outputResult := map[string]interface{}{
-			"index":            result.Index,
-			"input_text":       result.InputText,
-			"ground_truth":     result.GroundTruth,
-			"final_answer":     result.FinalAnswer,
-			"raw_response":     result.RawResponse,
-			"thinking_content": result.ThinkingContent,
-			"success":          result.Success,
-			"error":            result.Error,
-			"response_time_ms": result.ResponseTime.Nanoseconds() / 1000000,
-			"attempts":         result.Attempts,
-			"consensus":        result.Consensus,
-			"tool_calls":       result.ToolCalls,
-			"usage":            result.Usage,
+			"index":              result.Index,
+			"input_text":         result.InputText,
+			"final_answer":       result.FinalAnswer,
+			"raw_response":       result.RawResponse,
+			"thinking_content":   result.ThinkingContent,
+			"inference_success":  result.Success,
+			"error":              result.Error,
+			"response_time":      result.ResponseTime.Nanoseconds() / 1000000, // ms
+			"attempts":           result.Attempts,
+			"consensus":          result.Consensus,
+			"tool_calls":         result.ToolCalls,
+			"usage":              result.Usage,
+		}
+		// Add ground truth if metrics are enabled
+		if p.config.Processing.LiveMetrics != nil && p.config.Processing.LiveMetrics.GroundTruth != "" {
+			outputResult["ground_truth"] = result.GroundTruth
 		}
 		// Merge original data directly into the top level of each result in JSON output
 		for k, v := range result.OriginalData {

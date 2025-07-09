@@ -173,27 +173,22 @@ func (w *CSVStreamWriter) WriteResult(result models.Result) error {
 	}
 
 	// Write data row
-	row := []string{
-		strconv.Itoa(result.Index),
-		result.InputText,
-		result.GroundTruth,
-		result.FinalAnswer,
-		strconv.FormatBool(result.Success),
-		strconv.FormatInt(result.ResponseTime.Nanoseconds()/1000000, 10),
-	}
-
+	var row []string
+	
 	// Add original data values in header order
 	for _, h := range w.knownHeaders {
 		val := result.OriginalData[h]
 		row = append(row, fmt.Sprintf("%v", val))
 	}
-
+	
+	// Add our result columns in the same order as header
+	row = append(row, result.RawResponse)
 	if w.config.IncludeThinking {
 		row = append(row, result.ThinkingContent)
 	}
-	if w.config.IncludeRawResponse {
-		row = append(row, result.RawResponse)
-	}
+	row = append(row, strconv.FormatInt(result.ResponseTime.Nanoseconds()/1000000, 10)) // response_time in ms
+	row = append(row, strconv.FormatBool(result.Success)) // inference_success
+	row = append(row, result.FinalAnswer) // final_answer
 
 	if err := w.writer.Write(row); err != nil {
 		return err
@@ -212,15 +207,14 @@ func (w *CSVStreamWriter) writeHeader() {
 	sort.Strings(sortedHeaders)
 	w.knownHeaders = sortedHeaders
 
-	header := []string{"index", "input_text", "ground_truth", "final_answer", "success", "response_time_ms"}
-	header = append(header, w.knownHeaders...)
-
+	// Start with original data columns
+	header := sortedHeaders
+	header = append(header, "raw_response")
 	if w.config.IncludeThinking {
 		header = append(header, "thinking_content")
 	}
-	if w.config.IncludeRawResponse {
-		header = append(header, "raw_response")
-	}
+	header = append(header, "response_time", "inference_success", "final_answer")
+	// Note: ground_truth column added dynamically based on config
 
 	w.writer.Write(header)
 	w.writer.Flush()
@@ -259,10 +253,10 @@ func (w *CSVStreamWriter) Flush() error {
 type StreamParquetResult struct {
 	Index            int32  `parquet:"index"`
 	InputText        string `parquet:"input_text"`
-	GroundTruth      string `parquet:"ground_truth"`
+	GroundTruth      string `parquet:"ground_truth,optional"`
 	FinalAnswer      string `parquet:"final_answer"`
-	Success          bool   `parquet:"success"`
-	ResponseTimeMs   int64  `parquet:"response_time_ms"`
+	InferenceSuccess bool   `parquet:"inference_success"`
+	ResponseTime     int64  `parquet:"response_time"`
 	ThinkingContent  string `parquet:"thinking_content,optional"`
 	RawResponse      string `parquet:"raw_response,optional"`
 	OriginalDataJSON string `parquet:"original_data_json,optional"`
@@ -308,8 +302,8 @@ func (w *ParquetStreamWriter) WriteResult(result models.Result) error {
 		InputText:        result.InputText,
 		GroundTruth:      result.GroundTruth,
 		FinalAnswer:      result.FinalAnswer,
-		Success:          result.Success,
-		ResponseTimeMs:   result.ResponseTime.Nanoseconds() / 1000000,
+		InferenceSuccess: result.Success,
+		ResponseTime:     result.ResponseTime.Nanoseconds() / 1000000,
 		ThinkingContent:  result.ThinkingContent,
 		RawResponse:      result.RawResponse,
 		OriginalDataJSON: originalDataJSON,

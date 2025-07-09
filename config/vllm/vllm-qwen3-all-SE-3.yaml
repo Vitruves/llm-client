@@ -1,0 +1,46 @@
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "1200s"
+
+model:
+  name: "Qwen3"
+  parameters:
+    temperature: 0.6
+    #max_tokens: 512
+    #top_p: 0.95
+    #top_k: 1
+    presence_penalty: 1.5
+    #seed: 42
+    stop: ["<|im_end|>\n"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+    
+    user: |
+      /no_think Extract as a comma-separated list the drug-induced side effects from the following patient drug review: ### {comment} ###. If no side effects output "none"
+
+  field_mapping:
+    input_text_field: "comment"
+  
+  parsing:
+    # Extract content after thinking block using regex pattern
+    answer_patterns:
+      - "(?s)/think.*?\\n\\n\\s*(.*?)\\s*$"
+      - "(?s)/think.*?\\n\\n\\s*(.+)$"
+    thinking_tags: "<think></think>"
+    preserve_thinking: false
+
+processing:
+  workers: 1
+  batch_size: 1
+  repeat: 1
+  rate_limit: false
+
+output:
+  directory: "./output_tests/qwen3"
+  format: "parquet"

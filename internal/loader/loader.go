@@ -40,7 +40,7 @@ func loadCSV(filename string) ([]models.DataRow, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	
+
 	// Read header first
 	headers, err := reader.Read()
 	if err != nil {
@@ -48,7 +48,7 @@ func loadCSV(filename string) ([]models.DataRow, error) {
 	}
 
 	var data []models.DataRow
-	rowIndex := 0
+	filePosition := 0  // Track actual file position (including skipped rows)
 
 	// Read rows one by one to handle malformed rows gracefully
 	for {
@@ -58,17 +58,19 @@ func loadCSV(filename string) ([]models.DataRow, error) {
 			if err == io.EOF {
 				break
 			}
-			// Skip malformed rows and continue
+			// Skip malformed rows and continue, but increment file position
+			filePosition++
 			continue
 		}
 
-		// Skip rows with incorrect number of columns
+		// Skip rows with incorrect number of columns, but increment file position
 		if len(record) != len(headers) {
+			filePosition++
 			continue
 		}
 
 		row := models.DataRow{
-			Index: rowIndex,
+			Index: filePosition,  // Use file position for consistent indexing
 			Data:  make(map[string]interface{}),
 		}
 
@@ -84,7 +86,7 @@ func loadCSV(filename string) ([]models.DataRow, error) {
 		}
 
 		data = append(data, row)
-		rowIndex++
+		filePosition++
 	}
 
 	if len(data) == 0 {
@@ -155,14 +157,16 @@ func loadExcel(filename string) ([]models.DataRow, error) {
 
 	headers := rows[0]
 	var data []models.DataRow
+	filePosition := 0  // Track actual file position (including skipped rows)
 
-	for i, row := range rows[1:] {
+	for _, row := range rows[1:] {
 		if len(row) == 0 {
+			filePosition++
 			continue
 		}
 
 		dataRow := models.DataRow{
-			Index: i,
+			Index: filePosition,  // Use file position for consistent indexing
 			Data:  make(map[string]interface{}),
 		}
 
@@ -180,6 +184,7 @@ func loadExcel(filename string) ([]models.DataRow, error) {
 		}
 
 		data = append(data, dataRow)
+		filePosition++
 	}
 
 	return data, nil
@@ -211,26 +216,24 @@ func loadParquet(filename string) ([]models.DataRow, error) {
 	// Read all row groups
 	var data []models.DataRow
 	rowIndex := 0
-
+	
 	for _, rowGroup := range pf.RowGroups() {
 		rows := rowGroup.Rows()
 		defer rows.Close()
 
-		for {
-			rowValues := make([]parquet.Row, 1)
-			n, err := rows.ReadRows(rowValues)
-			if err != nil {
-				if err.Error() == "EOF" {
-					break
-				}
-				return nil, err
-			}
-			if n == 0 {
-				break
-			}
-
-			// Process the row
-			row := rowValues[0]
+		// Read all rows in the group at once
+		totalRows := rowGroup.NumRows()
+		allRows := make([]parquet.Row, totalRows)
+		
+		// Read all rows at once to avoid EOF issues
+		n, err := rows.ReadRows(allRows)
+		if err != nil && err.Error() != "EOF" {
+			return nil, err
+		}
+		
+		// Process each row that was successfully read
+		for i := 0; i < n; i++ {
+			row := allRows[i]
 
 			// Convert parquet row to DataRow
 			dataRow := models.DataRow{
@@ -300,6 +303,7 @@ func loadParquet(filename string) ([]models.DataRow, error) {
 			rowIndex++
 		}
 	}
+	
 
 	if len(data) == 0 {
 		return nil, fmt.Errorf("parquet file is empty")

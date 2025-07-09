@@ -1,0 +1,80 @@
+provider:
+  name: "llamacpp"
+  base_url: "http://0.0.0.0:8080"
+  timeout: "300s"
+
+model:
+  name: "Qwen2.5"
+  parameters:
+    # Anti-repetition configuration
+    temperature: 0.3  # Higher temperature to avoid loops
+    max_tokens: 256  # Shorter max to prevent runaway generation
+    top_p: 0.9
+    top_k: 40
+    repetition_penalty: 1.5  # Stronger penalty
+    presence_penalty: 1.5    # Stronger penalty
+    frequency_penalty: 1.0   # Stronger penalty
+    seed: 42
+    
+    # Mirostat for better sampling (optional - uncomment if supported)
+    # mirostat: 2
+    # mirostat_tau: 5.0
+    # mirostat_eta: 0.1
+    
+    # Multiple stop sequences
+    stop: [
+      "<|im_end|>",
+      "<|endoftext|>",
+      "\n\n",
+      ",,",
+      "...",
+      "Side effects:",
+      "\nSide effects:",
+      "Note:",
+      "\nNote:"
+    ]
+    skip_special_tokens: false
+    spaces_between_special_tokens: true
+    
+    # Additional llamacpp specific parameters
+    penalize_nl: false  # Don't penalize newlines
+    ignore_eos: false   # Respect EOS tokens
+
+classification:
+  template:
+    system: |
+      You are a medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+      
+      Your task is to identify and extract only the side effects that are directly attributed to or likely caused by the medication mentioned in the review.
+      
+      Guidelines:
+      - Focus on symptoms that appeared after starting the medication
+      - Include both physical and psychological side effects
+      - Exclude pre-existing conditions or symptoms unrelated to the drug
+      - Use medical terminology when possible
+      - If no side effects are mentioned, respond with "none"
+      - Provide a concise comma-separated list without explanation
+    
+    user: |
+      Extract the drug-induced side effects from this patient drug review:
+      
+      Review: {comment}
+      
+      Side effects comma-separated:
+
+  field_mapping:
+    input_text_field: "comment"
+
+  parsing:
+    answer_patterns:
+    find: []
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 5  # Reduced workers to monitor output
+  batch_size: 1
+  
+output:
+  directory: "./results/test-SE-fixed"
+  format: "parquet"

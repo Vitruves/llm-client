@@ -8,34 +8,47 @@ model:
   name: "Qwen3"  # or your specific Qwen2.5 model
   parameters:
     # Qwen2.5 optimized parameters for fast classification
-    temperature: 0.6
+    temperature: 0.7
     #max_tokens: 512
-    #top_p: 0.1
-    #top_k: 1
-    #repetition_penalty: 1
-    presence_penalty: 1.5
+    top_p: 0.8
+    top_k: 20
+    min_p: 0
+    #repetition_penalty: 1.2
+    presence_penalty: 2
     #seed: 42
     
     # Standard stopping
     #stop: ["<|im_end|>"]
-    skip_special_tokens: false
-    spaces_between_special_tokens: true
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
 
-lassification:
+classification:
   template:
     system: |
       You are a english medical expert specialized in detecting drug-induced side effects from patient drug reviews.
     
     user: |
-      Read the medical review and extract the **drug-induced** side effects in a list of **UNIQUE NON-DUPLICATED** **medical terms** separated by comma OR "none" if NO **drug -induced** side effect or empty review **OR** "none" if no drug-induced side effects or empty review. Example 1 :  #START_OF_REVIEW# Starting this medicine was difficult because of nausea and vomiting but now I'm fine! #END_OF_REVIEW#, your answer would be: "nausea,vomiting". Example 2 : #START_OF_REVIEW# I feel good #END_OF_REVIEW#, your answer would be: "none". The review you need to analyze: #START_OF_REVIEW# {comment} #END_OF_REVIEW#. Your answer (only a list of non-duplicated medical terms separated by a comma **OR** "none"):
+      /no_think 
+      Read the medical review and extract the **drug-induced** side effects in a list of **UNIQUE NON-DUPLICATED** **medical terms** separated by comma OR "none" if NO **drug-induced** side effect or empty review **OR** "none" if no drug-induced side effects or empty review. Example 1 :  #START_OF_REVIEW# Starting this medicine was difficult because of nausea and vomiting but now I'm fine! #END_OF_REVIEW#, your answer would be: "nausea,vomiting". Example 2 : #START_OF_REVIEW# I feel good #END_OF_REVIEW#, your answer would be: "none". 
+      Now, here is the actual review you need to analyze: #START_OF_REVIEW# {comment} #END_OF_REVIEW#. 
+      Your answer (only a list of non-duplicated medical terms separated by a comma **OR** "none"):
 
   field_mapping:
     input_text_field: "comment"
   
   parsing:
-    # Fallback to simple find
+    # Extract content after thinking block using regex pattern
+    answer_patterns:
+      - ".*?think.*?/think.*?\\n\\n(.+)"
+      - ".*?</think>.*?\\n\\n(.+)"
+      - "<think>.*?</think>\\s*(.+)"
+    thinking_tags: "<think></think>"
+    preserve_thinking: false
+    
+    # Fallback configuration
     find: []
-    #fallback: "model_error"
+    default: "none"
+    fallback: "model_error"
     
     # Case insensitive matching
     case_sensitive: false

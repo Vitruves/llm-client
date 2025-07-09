@@ -533,34 +533,46 @@ func formatComparison(comp *Comparison) string {
 
 func applyModelParameterOverrides(cmd *cobra.Command, params *models.ModelParameters, providerName string) {
 	// Basic sampling parameters
-	if temp, _ := cmd.Flags().GetFloat64("temperature"); temp >= 0 {
+	// Only override if flag was explicitly set
+	if cmd.Flags().Changed("temperature") {
+		temp, _ := cmd.Flags().GetFloat64("temperature")
 		params.Temperature = &temp
 	}
-	if maxTokens, _ := cmd.Flags().GetInt("max-tokens"); maxTokens >= 0 {
+	if cmd.Flags().Changed("max-tokens") {
+		maxTokens, _ := cmd.Flags().GetInt("max-tokens")
 		params.MaxTokens = &maxTokens
 	}
-	if minTokens, _ := cmd.Flags().GetInt("min-tokens"); minTokens >= 0 {
+	if cmd.Flags().Changed("min-tokens") {
+		minTokens, _ := cmd.Flags().GetInt("min-tokens")
 		params.MinTokens = &minTokens
 	}
-	if topP, _ := cmd.Flags().GetFloat64("top-p"); topP >= 0 {
+	if cmd.Flags().Changed("top-p") {
+		topP, _ := cmd.Flags().GetFloat64("top-p")
 		params.TopP = &topP
 	}
-	if topK, _ := cmd.Flags().GetInt("top-k"); topK >= 0 {
+	if cmd.Flags().Changed("top-k") {
+		topK, _ := cmd.Flags().GetInt("top-k")
 		params.TopK = &topK
 	}
-	if minP, _ := cmd.Flags().GetFloat64("min-p"); minP >= 0 {
+	if cmd.Flags().Changed("min-p") {
+		minP, _ := cmd.Flags().GetFloat64("min-p")
 		params.MinP = &minP
 	}
-	if repPenalty, _ := cmd.Flags().GetFloat64("repetition-penalty"); repPenalty >= 0 {
+	if cmd.Flags().Changed("repetition-penalty") {
+		repPenalty, _ := cmd.Flags().GetFloat64("repetition-penalty")
 		params.RepetitionPenalty = &repPenalty
 	}
-	if presPenalty, _ := cmd.Flags().GetFloat64("presence-penalty"); presPenalty >= -2.0 {
+	// Only override if flag was explicitly set
+	if cmd.Flags().Changed("presence-penalty") {
+		presPenalty, _ := cmd.Flags().GetFloat64("presence-penalty")
 		params.PresencePenalty = &presPenalty
 	}
-	if freqPenalty, _ := cmd.Flags().GetFloat64("frequency-penalty"); freqPenalty >= -2.0 {
+	if cmd.Flags().Changed("frequency-penalty") {
+		freqPenalty, _ := cmd.Flags().GetFloat64("frequency-penalty")
 		params.FrequencyPenalty = &freqPenalty
 	}
-	if seed, _ := cmd.Flags().GetInt64("seed"); seed >= 0 {
+	if cmd.Flags().Changed("seed") {
+		seed, _ := cmd.Flags().GetInt64("seed")
 		params.Seed = &seed
 	}
 
@@ -574,19 +586,24 @@ func applyModelParameterOverrides(cmd *cobra.Command, params *models.ModelParame
 
 	// llama.cpp specific parameters
 	if providerName == "llamacpp" {
-		if mirostat, _ := cmd.Flags().GetInt("mirostat"); mirostat >= 0 {
+		if cmd.Flags().Changed("mirostat") {
+			mirostat, _ := cmd.Flags().GetInt("mirostat")
 			params.Mirostat = &mirostat
 		}
-		if mirostatTau, _ := cmd.Flags().GetFloat64("mirostat-tau"); mirostatTau >= 0 {
+		if cmd.Flags().Changed("mirostat-tau") {
+			mirostatTau, _ := cmd.Flags().GetFloat64("mirostat-tau")
 			params.MirostatTau = &mirostatTau
 		}
-		if mirostatEta, _ := cmd.Flags().GetFloat64("mirostat-eta"); mirostatEta >= 0 {
+		if cmd.Flags().Changed("mirostat-eta") {
+			mirostatEta, _ := cmd.Flags().GetFloat64("mirostat-eta")
 			params.MirostatEta = &mirostatEta
 		}
-		if tfsZ, _ := cmd.Flags().GetFloat64("tfs-z"); tfsZ >= 0 {
+		if cmd.Flags().Changed("tfs-z") {
+			tfsZ, _ := cmd.Flags().GetFloat64("tfs-z")
 			params.TfsZ = &tfsZ
 		}
-		if typicalP, _ := cmd.Flags().GetFloat64("typical-p"); typicalP >= 0 {
+		if cmd.Flags().Changed("typical-p") {
+			typicalP, _ := cmd.Flags().GetFloat64("typical-p")
 			params.TypicalP = &typicalP
 		}
 	}
@@ -606,7 +623,8 @@ func applyModelParameterOverrides(cmd *cobra.Command, params *models.ModelParame
 			useBeamSearch, _ := cmd.Flags().GetBool("use-beam-search")
 			params.UseBeamSearch = &useBeamSearch
 		}
-		if bestOf, _ := cmd.Flags().GetInt("best-of"); bestOf >= 0 {
+		if cmd.Flags().Changed("best-of") {
+			bestOf, _ := cmd.Flags().GetInt("best-of")
 			params.BestOf = &bestOf
 		}
 	}

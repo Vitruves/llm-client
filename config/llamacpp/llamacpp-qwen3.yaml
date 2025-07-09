@@ -4,7 +4,7 @@ provider:
   timeout: "600s"
 
 model:
-  name: "Qwen/Qwen2.5-Coder-32B-Instruct"
+  name: "Qwen3"
   parameters:
     temperature: 0.6
     max_tokens: 1024
@@ -19,7 +19,7 @@ model:
 classification:
   template:
     system: "You are a medical expert specialized in detecting drug-induced weight changes."
-    user: "Classify medical testimonies into these categories: 0: no weight change mentioned. 1: drug-induced weight gain or weight gain mentioned IF no drug mentioned. 2: drug-induced weight loss or weight loss mentioned IF no drug mentioned. Think through your analysis step by step, then provide your classification number. The review: {text}. Your classification only (0, 1 or 2):"
+    user: "/no_think Classify medical testimonies into these categories: 0: no weight change mentioned. 1: drug-induced weight gain or weight gain mentioned IF no drug mentioned. 2: drug-induced weight loss or weight loss mentioned IF no drug mentioned. Think through your analysis step by step, then provide your classification number. The review: {text}. Your classification only (0, 1 or 2):"
   
   parsing:
     thinking_tags: "<think></think>"
@@ -42,7 +42,7 @@ processing:
   rate_limit: false
   live_metrics:
     enabled: true
-    metric: "F1"
+    metric: "kappa"
     ground_truth: "label"
     average: "macro"
 

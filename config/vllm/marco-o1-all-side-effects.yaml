@@ -1,0 +1,60 @@
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "240s"
+
+model:
+  name: "Marco-o1-int4-GPTQ"
+  parameters:
+    #temperature: 0
+    #max_tokens: 2048
+    #top_p: 0.9
+  
+
+classification:
+  template:
+    system: "你是一个经过良好训练的AI助手，你的名字是Marco-o1，由阿里国际数字商业集团的AI Business创造。你专门从事医学文本分析，特别是从患者评论中提取药物引起的副作用。## 重要！！！！！ 当你回答问题时，你的思考应该在<Thought>内完成，<Output>内输出你的结果。<Thought>应该尽可能是英文，但是有2个特例，一个是对原文中的引用，另一个是数学应该使用markdown格式，<Output>内的输出需要遵循用户输入的语言。对于医学术语提取任务，请确保使用标准医学术语，去除重复项，并且只包含明确由药物引起的副作用。"
+
+    user: |
+      Read the medical review and extract the **drug-induced** side effects in a list of **UNIQUE NON-DUPLICATED** **medical terms** separated by comma OR "none" if NO **drug-induced** side effect or empty review.
+      
+      **Important Guidelines:**
+      - Only extract side effects explicitly caused by medication/drugs
+      - Use standard medical terminology (avoid colloquial terms)
+      - Remove any duplicates from your list
+      - If no drug-induced side effects mentioned, return "none"
+      - If review is empty or unclear, return "none"
+      
+      **Examples:**
+      
+      Example 1: #START_OF_REVIEW# Starting this medicine was difficult because of nausea and vomiting but now I'm fine! #END_OF_REVIEW#
+      Answer: "nausea,vomiting"
+      
+      Example 2: #START_OF_REVIEW# I feel good #END_OF_REVIEW#
+      Answer: "none"
+      
+      Example 3: #START_OF_REVIEW# The medication caused severe headaches and made me dizzy. I also had headaches frequently. #END_OF_REVIEW#
+      Answer: "headache,dizziness"
+      
+      **Review to analyze:**
+      #START_OF_REVIEW# {comment} #END_OF_REVIEW#
+      
+      Your answer (only a list of non-duplicated medical terms separated by comma **OR** "none"):
+
+  field_mapping:
+    input_text_field: "comment"
+
+  parsing:
+    # Answer extraction patterns compatible with Go regex
+    answer_patterns:
+    # Fallback patterns if no match found
+    find: []
+    default: "nan"
+
+processing:
+  workers: 20
+  batch_size: 1
+
+output:
+  directory: "./results/test"
+  format: "parquet"

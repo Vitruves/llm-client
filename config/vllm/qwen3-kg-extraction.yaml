@@ -6,8 +6,8 @@ provider:
 model:
   name: "Qwen3"
   parameters:
-    temperature: 0.6
-    presence_penalty: 1.5
+    #temperature: 0.6
+    #presence_penalty: 1.5
     #max_tokens: 16000
 
 classification:

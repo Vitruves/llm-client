@@ -8,20 +8,25 @@ model:
   parameters:
     temperature: 0.7
     #max_tokens: 2048
-    #top_p: 0.95
-    #top_k: 20
+    top_p: 0.95
+    top_k: 20
     presence_penalty: 1.5
     #repetition_penalty: 1.1
     #seed: 42
     #stop: ["<|im_end|>\n"]
     #skip_special_tokens: false
     #spaces_between_special_tokens: true
+    guided_choice: ["0", "1", "2"]
 
 classification:
   template:
-    system: "You are a medical expert specialized in detecting drug-induced weight changes."
-    user: "Classify medical drug record about a medication into categories: \"0\" for no weight change mentioned, \"1\" for weight GAIN drug-induced or weight gain mentioned if no drug mentioned, \"2\" for weight LOSS drug-induced or weight loss mentioned if no drug mentioned. Analyze step by step then provide classification number. Pay attention to finding weight gain and loss as less common. Testimony: ### {text} ###. Answer with classification number only:"
+    #system: "You are a medical expert specialized in detecting drug-induced weight changes."
+    user: "Classify medical drug record about a medication into categories: \"0\" for no weight change mentioned, \"1\" for weight GAIN drug-induced or weight gain mentioned if no drug mentioned, \"2\" for weight LOSS drug-induced or weight loss mentioned if no drug mentioned. Testimony: >>> {REVIEW} <<<. Answer with classification number only:"
   
+
+  field_mapping:
+    input_text_field: "REVIEW"
+
   parsing:
     thinking_tags: "<think></think>"
     preserve_thinking: true
@@ -42,7 +47,7 @@ processing:
   live_metrics:
     enabled: true
     metric: "kappa"
-    ground_truth: "label"
+    ground_truth: "WEIGHT_CHANGE"
     #average: "macro"
 
 output:

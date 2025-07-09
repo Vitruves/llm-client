@@ -1,0 +1,82 @@
+provider:
+  name: "llamacpp"
+  base_url: "http://localhost:8080"
+  timeout: "120s"
+
+model:
+  name: "Mistral"  # or your specific Qwen2.5 model
+  parameters:
+    # Qwen2.5 optimized parameters for fast classification
+    temperature: 0.05
+    #max_tokens: 3
+    top_p: 0.9
+    top_k: 40
+    #repetition_penalty: 1.2
+    #presence_penalty: 0.1
+    frequency_penalty: 0.1
+    #seed: 42
+    
+    # Standard stopping
+    stop: ["[/INST]"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+      
+      CRITICAL INSTRUCTIONS:
+      - Extract ONLY side effects directly caused by the medication
+      - Use standard medical terminology (not patient language)
+      - Output format: side_effect_1, side_effect_2, side_effect_3
+      - If no side effects mentioned, output exactly: none
+      - Do not add explanations, qualifiers, or extra text
+      - Stop immediately after listing side effects
+    
+    user: |
+      Extract drug-induced side effects from this patient review as a comma-separated list using medical terms:
+      
+      EXAMPLES:
+      
+      Review: "I started taking Lisinopril for my blood pressure 3 weeks ago. Since then, I've developed a persistent dry cough that keeps me awake at night. I also noticed some dizziness when I stand up quickly."
+      Output: cough, dizziness
+      
+      Review: "Been on Sertraline for 6 months now. Initially had some nausea and headaches for the first two weeks. My anxiety has improved significantly, but I've gained about 10 pounds and my libido has decreased considerably."
+      Output: nausea, headache, weight gain, decreased libido
+      
+      Review: "Metformin has been great for controlling my diabetes. No issues at all, blood sugar levels are stable."
+      Output: none
+      
+      Review: "Started Atorvastatin last month. Experiencing severe muscle pain in my legs and weakness. Also having trouble sleeping."
+      Output: myalgia, muscle weakness, insomnia
+      
+      PATIENT REVIEW: {comment}
+      
+      SIDE EFFECTS:
+      
+  field_mapping:
+    input_text_field: "comment"
+  
+  parsing:
+    # Simple parsing for non-thinking models
+    preserve_thinking: false
+    
+    # Direct classification patterns
+    answer_patterns:
+    
+    # Fallback to simple find
+    find: []
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 1  # Higher throughput for non-thinking
+  batch_size: 1
+
+output:
+  directory: "./results"
+  format: "parquet" 

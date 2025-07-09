@@ -1,22 +1,18 @@
 provider:
-  name: "llamacpp"
-  base_url: "http://localhost:8080"
-  timeout: "120s"
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "600s"
 
 model:
-  name: "Mistral"  # or your specific Qwen2.5 model
+  name: "Qwen3"
   parameters:
-    # Qwen2.5 optimized parameters for fast classification
-    temperature: 0
-    max_tokens: 3
-    #top_p: 0.1
+    temperature: 0.7
+    #max_tokens: 1024
+    #top_p: 0.95
     #top_k: 1
-    #repetition_penalty: 1
-    #presence_penalty: 0.0
+    presence_penalty: 1
     #seed: 42
-    
-    # Standard stopping
-    stop: ["[/INST]"]
+    stop: ["<|im_end|>\n"]
     #skip_special_tokens: false
     #spaces_between_special_tokens: true
 
@@ -40,31 +36,20 @@ classification:
       Comma-separated list of side effects:
   
   parsing:
-    # Simple parsing for non-thinking models
-    preserve_thinking: false
-    
-    # Direct classification patterns
+    # Extract content after thinking block using regex pattern
     answer_patterns:
-      - "\\b([012])\\b"
-    
-    # Fallback to simple find
-    find: ["0", "1", "2"]
-    fallback: "nan"
-    
-    # Case insensitive matching
-    case_sensitive: false
-    exact_match: false
+      - ".*?think.*?/think.*?\\n\\n(.+)"
+      - ".*?</think>.*?\\n\\n(.+)"
+      - "<think>.*?</think>\\s*(.+)"
+    thinking_tags: "<think></think>"
+    preserve_thinking: false
 
 processing:
-  workers: 1  # Higher throughput for non-thinking
+  workers: 1
   batch_size: 1
-  
-  # Live metrics configuration
-  live_metrics:
-    enabled: true
-    metric: "kappa"
-    ground_truth: "label"
+  repeat: 1
+  rate_limit: false
 
 output:
   directory: "./results"
-  format: "json" 
+  format: "parquet"

@@ -1,0 +1,62 @@
+# Qwen2.5 Medical Classification (Non-Thinking)
+provider:
+  name: "vllm"
+  base_url: "http://localhost:8000"
+  timeout: "600s"
+
+model:
+  name: "Mistral"  # or your specific Qwen2.5 model
+  parameters:
+    # Qwen2.5 optimized parameters for fast classification
+    #temperature: 0
+    #max_tokens: 256
+    #top_p: 0.1
+    #top_k: 1
+    #repetition_penalty: 1
+    #presence_penalty: 1.5
+    #seed: 42
+    
+    # Standard stopping
+    #stop: ["[/INST]"]
+    #skip_special_tokens: false
+    #spaces_between_special_tokens: true
+
+classification:
+  template:
+    system: |
+      You are a english medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+    
+    user: |
+      Read the medical review and extract the **drug-induced** side effects in a list of **UNIQUE NON-DUPLICATED** **medical terms** separated by comma OR "none" if NO **drug-induced** side effect or empty review **OR** "none" if no drug-induced side effects or empty review. 
+      Example 1 :  #START_OF_REVIEW# Starting this medicine was difficult because of nausea and vomiting but now I'm fine! #END_OF_REVIEW#, your answer would be: "nausea,vomiting". 
+      Example 2 : #START_OF_REVIEW# I feel good #END_OF_REVIEW#, your answer would be: "none". 
+      The review you need to analyze: #START_OF_REVIEW# {comment} #END_OF_REVIEW#. Your answer (only a list of non-duplicated medical terms separated by a comma **OR** "none"):
+
+  field_mapping:
+    input_text_field: "comment"
+  
+  parsing:
+    # Direct classification patterns
+    answer_patterns:
+    
+    # Fallback to simple find
+    find: []
+    fallback: "nan"
+    
+    # Case insensitive matching
+    case_sensitive: false
+    exact_match: false
+
+processing:
+  workers: 50  # Higher throughput for non-thinking
+  batch_size: 1
+  
+  # Live metrics configuration
+  #live_metrics:
+  #  enabled: true
+  #  metric: "accuracy"
+  #  ground_truth: "label"
+
+output:
+  directory: "./test-SE"
+  format: "parquet" 

@@ -8,16 +8,17 @@ model:
   name: "Qwen2.5"  # or your specific Qwen2.5 model
   parameters:
     # Qwen2.5 optimized parameters for fast classification
-    temperature: 1
+    temperature: 0.1  # Slightly higher to avoid deterministic loops
     max_tokens: 512
-    #top_p: 0.1
-    #top_k: 1
-    #repetition_penalty: 1
-    #presence_penalty: 0.0
-    #seed: 42
+    top_p: 0.1
+    top_k: 10  # Allow some variation
+    repetition_penalty: 1.2  # Penalize repetition
+    presence_penalty: 1.2  # Penalize tokens already present
+    frequency_penalty: 0.5  # Additional penalty for frequent tokens
+    seed: 42
     
-    # Standard stopping
-    stop: ["<|im_end|>"]
+    # Enhanced stopping conditions
+    stop: ["<|im_end|>", "<|im_end|>\n", "<|im_end|>\n\n", ",,", "\n\n", "Side effects: Side effects:"]
     skip_special_tokens: false
     spaces_between_special_tokens: true
 
@@ -25,9 +26,37 @@ classification:
   template:
     system: |
       You are a medical expert specialized in detecting drug-induced side effects from patient drug reviews.
+      
+      Your task is to identify and extract only the side effects that are directly attributed to or likely caused by the medication mentioned in the review.
+      
+      Guidelines:
+      - Focus on symptoms that appeared after starting the medication
+      - Include both physical and psychological side effects
+      - Exclude pre-existing conditions or symptoms unrelated to the drug
+      - Use medical terminology when possible
+      - If no side effects are mentioned, respond with "none"
     
     user: |
-      Extract the drug-induced side effects from the following patient drug review: ### {comment} ###. List them in medical terms ending with a star by a space, example : \"nausea diarrhea anxiety intestinal pain\" or "none". Your answer (only a list of medical terms separated by a comma):
+      Extract as a comma-separated list the drug-induced side effects from the following patient drug review:
+      
+      ### {comment} ###
+      
+      Examples:
+      
+      Review: "I started taking Lisinopril for my blood pressure 3 weeks ago. Since then, I've developed a persistent dry cough that keeps me awake at night. I also noticed some dizziness when I stand up quickly. The medication is working for my BP though."
+      Side effects: dry cough, dizziness, orthostatic hypotension
+      
+      Review: "Been on Sertraline for 6 months now. Initially had some nausea and headaches for the first two weeks. My anxiety has improved significantly, but I've gained about 10 pounds and my libido has decreased considerably."
+      Side effects: nausea, headaches, weight gain, decreased libido
+      
+      Review: "Metformin has been great for controlling my diabetes. No issues at all, blood sugar levels are stable. I feel much better overall."
+      Side effects: None
+      
+      Review: "Started Atorvastatin last month. Experiencing severe muscle pain in my legs and weakness. Also having trouble sleeping. My cholesterol levels have improved but these side effects are concerning."
+      Side effects: muscle pain, muscle weakness, insomnia
+      
+      Now extract the side effects from the review above:
+      Side effects:
 
   field_mapping:
     input_text_field: "comment"

@@ -40,3 +40,5 @@ coverage.html
 # Environment
 .env
 .env.local
+
+.gitignore

@@ -1,0 +1,33 @@
+# Pipeline test: Code review/explanation
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.2
+    max_tokens: 200
+
+classification:
+  template:
+    system: "You are a code reviewer. Briefly explain what the given code does in one sentence."
+    user: "Explain this {language} code: {code} /no_think"
+  parsing:
+    find: []
+    default: ""
+  field_mapping:
+    input_text_field: code
+    placeholder_map:
+      language: language
+
+processing:
+  workers: 2
+  minimal_mode: true
+
+output:
+  directory: ./output
+  format: json
+  include_raw_response: true

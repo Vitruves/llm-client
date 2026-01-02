@@ -1,0 +1,11 @@
+id,text,label
+1,"I absolutely love this product! It exceeded all my expectations.",positive
+2,"This is the worst purchase I've ever made. Complete waste of money.",negative
+3,"The package arrived on Tuesday as expected.",neutral
+4,"Amazing quality and fast shipping. Highly recommend!",positive
+5,"Terrible customer service. They never responded to my emails.",negative
+6,"The item is blue and weighs about 2 pounds.",neutral
+7,"Best decision I ever made buying this. Life changing!",positive
+8,"Broken on arrival. Very disappointed.",negative
+9,"It works as described in the manual.",neutral
+10,"Fantastic! Will definitely buy again.",positive

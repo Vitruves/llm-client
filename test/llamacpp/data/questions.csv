@@ -1,0 +1,6 @@
+id,question,expected_type
+1,"What is the capital of France?",factual
+2,"How do I bake a chocolate cake?",procedural
+3,"Why is the sky blue?",explanatory
+4,"What is 25 multiplied by 4?",mathematical
+5,"Who wrote Romeo and Juliet?",factual

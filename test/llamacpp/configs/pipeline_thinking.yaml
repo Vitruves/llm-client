@@ -1,0 +1,34 @@
+# Pipeline test: With thinking mode enabled
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 180s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.5
+    max_tokens: 500
+
+classification:
+  template:
+    system: "You are a helpful assistant that thinks through problems step by step."
+    user: "{question} /think"
+  parsing:
+    find: []
+    default: ""
+    thinking_tags: "<think></think>"
+    preserve_thinking: false
+  field_mapping:
+    input_text_field: question
+
+processing:
+  workers: 1
+  minimal_mode: true
+
+output:
+  directory: ./output
+  format: json
+  include_raw_response: true
+  include_thinking: true

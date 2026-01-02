@@ -24,6 +24,16 @@ go install github.com/Vitruves/llm-client@latest
 
 This will install the `llm-client` binary to your `$GOPATH/bin` directory.
 
+## Manual Installation
+
+```bash
+git clone https://github.com/Vitruves/llm-client.git
+cd llm-client
+make install
+```
+
+This will build and install the binary to `~/.local/bin`. Alternatively, use `make build` to build without installing (outputs to `./bin/llm-client`).
+
 ## Quick Start
 
 1.  **Create a Configuration File**: Start with the example `config.full.yaml` provided in the repository and adapt it to your needs.

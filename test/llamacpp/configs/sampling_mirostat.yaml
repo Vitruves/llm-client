@@ -1,0 +1,29 @@
+# Mirostat sampling test config
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    max_tokens: 100
+    mirostat: 2
+    mirostat_tau: 5.0
+    mirostat_eta: 0.1
+
+classification:
+  template:
+    system: "You are a creative writer."
+    user: "{text}"
+  parsing:
+    find: []
+    default: ""
+
+processing:
+  workers: 1
+
+output:
+  directory: ./output
+  format: json

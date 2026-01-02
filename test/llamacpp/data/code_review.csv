@@ -1,0 +1,6 @@
+id,code,language
+1,"def add(a, b): return a + b",python
+2,"function multiply(x, y) { return x * y; }",javascript
+3,"public static int divide(int a, int b) { return a / b; }",java
+4,"fn subtract(a: i32, b: i32) -> i32 { a - b }",rust
+5,"func greet(name string) string { return ""Hello, "" + name }",go

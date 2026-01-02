@@ -1,0 +1,36 @@
+# Pipeline test: Streaming output
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.1
+    max_tokens: 50
+
+classification:
+  template:
+    system: "You are a sentiment classifier. Respond with: positive, negative, or neutral."
+    user: "{text} /no_think"
+  parsing:
+    find:
+      - positive
+      - negative
+      - neutral
+    default: unknown
+    case_sensitive: false
+  field_mapping:
+    input_text_field: text
+
+processing:
+  workers: 2
+
+output:
+  directory: ./output
+  format: json
+  include_raw_response: true
+  stream_output: true
+  stream_save_every: 1

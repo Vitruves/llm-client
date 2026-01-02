@@ -1,0 +1,33 @@
+# Pipeline test: Translation
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.3
+    max_tokens: 100
+
+classification:
+  template:
+    system: "You are a professional translator. Translate the given text to the specified language. Only output the translation, nothing else."
+    user: "Translate to {target_lang}: {english} /no_think"
+  parsing:
+    find: []
+    default: ""
+  field_mapping:
+    input_text_field: english
+    placeholder_map:
+      target_lang: target_lang
+
+processing:
+  workers: 2
+  minimal_mode: true
+
+output:
+  directory: ./output
+  format: json
+  include_raw_response: true

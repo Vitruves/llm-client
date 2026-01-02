@@ -1,0 +1,35 @@
+# Pipeline test: Consensus mode (multiple attempts per item)
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.7
+    max_tokens: 50
+
+classification:
+  template:
+    system: "You are a sentiment classifier. Classify as: positive, negative, or neutral. One word only."
+    user: "{text} /no_think"
+  parsing:
+    find:
+      - positive
+      - negative
+      - neutral
+    default: unknown
+    case_sensitive: false
+  field_mapping:
+    input_text_field: text
+
+processing:
+  workers: 2
+  repeat: 3
+
+output:
+  directory: ./output
+  format: json
+  include_raw_response: true

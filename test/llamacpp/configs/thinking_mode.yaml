@@ -1,0 +1,29 @@
+# Thinking mode test config (for Qwen3 with /think tags)
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 180s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.7
+    max_tokens: 500
+
+classification:
+  template:
+    system: "You are a helpful assistant that thinks step by step."
+    user: "{text} /think"
+  parsing:
+    find: []
+    default: ""
+    thinking_tags: "<think></think>"
+
+processing:
+  workers: 1
+
+output:
+  directory: ./output
+  format: json
+  include_thinking: true

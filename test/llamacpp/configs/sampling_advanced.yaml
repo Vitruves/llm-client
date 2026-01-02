@@ -1,0 +1,35 @@
+# Advanced sampling parameters test config
+provider:
+  name: llamacpp
+  base_url: http://localhost:8080
+  timeout: 120s
+
+model:
+  name: Qwen_Qwen3-8B-Q5_K_M.gguf
+  parameters:
+    chat_format: chatml
+    temperature: 0.8
+    max_tokens: 100
+    top_p: 0.95
+    top_k: 40
+    min_p: 0.05
+    repetition_penalty: 1.1
+    presence_penalty: 0.1
+    frequency_penalty: 0.1
+    typical_p: 0.9
+    tfs_z: 0.95
+
+classification:
+  template:
+    system: "You are a helpful assistant."
+    user: "{text}"
+  parsing:
+    find: []
+    default: ""
+
+processing:
+  workers: 1
+
+output:
+  directory: ./output
+  format: json

@@ -16,6 +16,14 @@ LLM Client is a versatile, high-performance command-line tool designed for batch
 -   **Resumability**: Automatically save state on cancellation (Ctrl+C) and resume interrupted jobs.
 -   **Guided Generation**: Leverage provider-specific features like regex, grammar, and JSON-enforced output with vLLM.
 
+## Installation (Recommended)
+
+```bash
+go install github.com/Vitruves/llm-client@latest
+```
+
+This will install the `llm-client` binary to your `$GOPATH/bin` directory.
+
 ## Quick Start
 
 1.  **Create a Configuration File**: Start with the example `config.full.yaml` provided in the repository and adapt it to your needs.
